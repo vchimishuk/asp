@@ -1,0 +1,4 @@
+github.com/gbin/goncurses v0.0.0-20141106211150-34d9399fcea5 h1:1zsAMqM0C3Yjv9KWjh/68s/07bYeev6c0D4FwHkl13w=
+github.com/gbin/goncurses v0.0.0-20141106211150-34d9399fcea5/go.mod h1:dmRjyC3ZOQQ4EXWMOIAQi0TLaJPcg61LFsJ9mvhSGRE=
+github.com/vchimishuk/chubby v0.0.0-20230708203843-f7ab3db3dd83 h1:ucAII9ohUWVH/OvkG4zFeBcpEfHmdfqOVIxvZl7+Vss=
+github.com/vchimishuk/chubby v0.0.0-20230708203843-f7ab3db3dd83/go.mod h1:WG3U84IdkwKpNaYrc0bXm1SRH/XRbP5DvIOwXvW3XZg=
