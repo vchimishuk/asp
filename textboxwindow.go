@@ -15,14 +15,15 @@ import (
 const (
 	// TODO: CamelCase constants.
 	KEY_ACK  ncurses.Key = 0x06 // ^F
-	KEY_BELL ncurses.Key = 0x07 // ^G
-	KEY_ENQ  ncurses.Key = 0x05 // ^E
-	KEY_EOT  ncurses.Key = 0x04 // ^D
-	KEY_ESC  ncurses.Key = 0x1B
-	KEY_ETB  ncurses.Key = 0x17 // ^W
-	KEY_SOH  ncurses.Key = 0x01 // ^A
-	KEY_STX  ncurses.Key = 0x02 // ^B
-	KEY_VT   ncurses.Key = 0x0B // ^K
+	KEY_BELL             = 0x07 // ^G
+	KEY_BS               = 0x08 // ^H
+	KEY_ENQ              = 0x05 // ^E
+	KEY_EOT              = 0x04 // ^D
+	KEY_ESC              = 0x1B
+	KEY_ETB              = 0x17 // ^W
+	KEY_SOH              = 0x01 // ^A
+	KEY_STX              = 0x02 // ^B
+	KEY_VT               = 0x0B // ^K
 )
 
 type TextboxWindow struct {
@@ -92,7 +93,7 @@ func (w *TextboxWindow) Input(prompt string) string {
 		} else if ch == KEY_BELL || ch == KEY_ESC { // ^G, ESC
 			buf = ""
 			break
-		} else if ch == ncurses.KEY_BACKSPACE {
+		} else if ch == ncurses.KEY_BACKSPACE || ch == KEY_BS {
 			if pos > 0 {
 				buf = buf[:pos-1] + buf[pos:]
 				pos--
