@@ -88,7 +88,11 @@ func (i *TrackItem) Format(width int) string {
 }
 
 func (i *TrackItem) IsSelected(val string) bool {
-	return strings.HasPrefix(val, i.path)
+	if i.dir {
+		return strings.HasPrefix(val, i.path+"/")
+	} else {
+		return i.path == val
+	}
 }
 
 type BrowserWindow struct {
