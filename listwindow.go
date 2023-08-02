@@ -83,6 +83,10 @@ func (w *ListWindow) Add(items ...ListItem) {
 	w.refresh()
 }
 
+func (w *ListWindow) Selected() string {
+	return w.selected
+}
+
 func (w *ListWindow) SetSelected(s string) {
 	old := w.selected
 	w.selected = s

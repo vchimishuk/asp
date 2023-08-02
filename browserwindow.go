@@ -1,6 +1,7 @@
 package main
 
 import (
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -153,6 +154,8 @@ func (w *BrowserWindow) Command(cmd config.Command) error {
 		}
 	case config.CommandBack:
 		w.back()
+	case config.CommandSelected:
+		w.selected()
 	default:
 		w.list.Command(cmd)
 	}
@@ -179,6 +182,7 @@ func (w *BrowserWindow) SetPath(p string) {
 		// TODO: Print error in status and exit.
 		panic(err)
 	}
+	w.items = entries
 
 	items := make([]ListItem, 0, len(entries)+1)
 	// items = append(items, newTrackItem(nil, &parentDirFormatter{}, true,
@@ -245,6 +249,18 @@ func (w *BrowserWindow) play(item Item) error {
 
 func (w *BrowserWindow) back() { // TODO: error?
 	w.SetPath(filepath.Dir(w.path))
+}
+
+func (w *BrowserWindow) selected() {
+	p := w.list.Selected()
+
+	w.SetPath(path.Dir(p))
+	for i, _ := range w.items {
+		t := w.items[i].Track()
+		if t.Path == p {
+			w.list.SetCursor(i + 1)
+		}
+	}
 }
 
 func isParent(path, parent string) bool {

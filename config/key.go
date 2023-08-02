@@ -55,6 +55,7 @@ const (
 	CommandSearch     Command = "search"
 	CommandSearchNext Command = "search-next"
 	CommandSearchPrev Command = "search-prev"
+	CommandSelected   Command = "selected"
 	CommandStop       Command = "stop"
 )
 
@@ -84,6 +85,7 @@ var defaultKeys = Keys{
 		CommandApplyDir: {ncurses.Key('x')},
 		CommandBack: {ncurses.KEY_BACKSPACE, ncurses.Key('h'),
 			ctrlKey('h')},
+		CommandSelected: {ncurses.Key('S')},
 	},
 }
 
