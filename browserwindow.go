@@ -253,6 +253,9 @@ func (w *BrowserWindow) back() { // TODO: error?
 
 func (w *BrowserWindow) selected() {
 	p := w.list.Selected()
+	if p == "" {
+		return
+	}
 
 	w.SetPath(path.Dir(p))
 	for i, _ := range w.items {
