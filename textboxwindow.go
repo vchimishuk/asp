@@ -76,21 +76,23 @@ func (w *TextboxWindow) Input(prompt string) string {
 			continue
 		} else if ch == ncurses.KEY_RETURN {
 			break
-		} else if ch == KEY_SOH { // ^A
+		} else if ch == KEY_SOH {
 			pos = 0
 			x = len(prompt)
-		} else if ch == KEY_STX || ch == ncurses.KEY_LEFT { // ^B
+		} else if ch == KEY_STX || ch == ncurses.KEY_LEFT {
 			pos = max(0, pos-1)
 			x = max(len(prompt), x-1)
-		} else if ch == KEY_EOT { // ^D
-			// TODO:
-		} else if ch == KEY_ENQ { // ^E
+		} else if ch == KEY_EOT || ch == ncurses.KEY_DC {
+			if pos < len(buf) {
+				buf = buf[:pos] + buf[pos+1:]
+			}
+		} else if ch == KEY_ENQ {
 			pos = len(buf)
 			x = min(len(buf)+len(prompt), w.maxX())
-		} else if ch == KEY_ACK || ch == ncurses.KEY_RIGHT { // ^F
+		} else if ch == KEY_ACK || ch == ncurses.KEY_RIGHT {
 			pos = min(len(buf), pos+1)
 			x = min(len(buf)+len(prompt), min(w.maxX(), x+1))
-		} else if ch == KEY_BELL || ch == KEY_ESC { // ^G, ESC
+		} else if ch == KEY_BELL || ch == KEY_ESC {
 			buf = ""
 			break
 		} else if ch == ncurses.KEY_BACKSPACE || ch == KEY_BS {
@@ -99,9 +101,9 @@ func (w *TextboxWindow) Input(prompt string) string {
 				pos--
 				x--
 			}
-		} else if ch == KEY_ETB { // ^W
+		} else if ch == KEY_ETB {
 			// TODO:
-		} else if ch == KEY_VT { // ^K
+		} else if ch == KEY_VT {
 			// TODO:
 			buf = buf[:pos]
 		} else if unicode.IsPrint(rune(ch)) {
