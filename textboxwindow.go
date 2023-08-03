@@ -50,6 +50,7 @@ func (w *TextboxWindow) Input(prompt string) string {
 	pos := 0         // Cursor position in string.
 	buf := ""
 
+loop:
 	for {
 		maxX := w.maxX()
 		s := max(0, pos-x-len(prompt))
@@ -71,9 +72,11 @@ func (w *TextboxWindow) Input(prompt string) string {
 
 		ch := w.window.GetChar()
 
+		// TODO: Implement ^/.
 		if ch == 0 {
 			continue
 		} else if ch == ncurses.KEY_RETURN {
+			// TODO: Add ^J support.
 			break
 		} else if ch == KEY_SOH {
 			pos = 0
@@ -91,9 +94,26 @@ func (w *TextboxWindow) Input(prompt string) string {
 		} else if ch == KEY_ACK || ch == ncurses.KEY_RIGHT {
 			pos = min(len(buf), pos+1)
 			x = min(len(buf)+len(prompt), min(w.maxX(), x+1))
-		} else if ch == KEY_BELL || ch == KEY_ESC {
+		} else if ch == KEY_BELL {
 			buf = ""
 			break
+		} else if ch == KEY_ESC {
+			switch w.window.GetChar() {
+			case 'b':
+				i := wordBegin(buf, pos)
+				x -= pos - i
+				pos = i
+			case 'd':
+				i := wordEnd(buf, pos)
+				buf = buf[:pos] + buf[i:]
+			case 'f':
+				i := wordEnd(buf, pos)
+				x += i - pos
+				pos = i
+			default:
+				buf = ""
+				break loop
+			}
 		} else if ch == ncurses.KEY_BACKSPACE || ch == KEY_BS {
 			if pos > 0 {
 				buf = buf[:pos-1] + buf[pos:]
@@ -101,26 +121,10 @@ func (w *TextboxWindow) Input(prompt string) string {
 				x--
 			}
 		} else if ch == KEY_ETB {
-			trim := true
-			done := false
-			for pos > 0 && !done {
-				c := rune(buf[pos-1])
-				if !unicode.IsSpace(c) {
-					if !unicode.IsLetter(c) && !unicode.IsNumber(c) {
-						if trim {
-							done = true
-						} else {
-							break
-						}
-					}
-					trim = false
-				} else if !trim {
-					break
-				}
-				buf = buf[:pos-1] + buf[pos:]
-				pos--
-				x--
-			}
+			i := wordBegin(buf, pos)
+			buf = buf[:i] + buf[pos:]
+			x -= pos - i
+			pos = i
 		} else if ch == KEY_VT {
 			buf = buf[:pos]
 		} else if unicode.IsPrint(rune(ch)) {
@@ -162,4 +166,57 @@ func (w *TextboxWindow) maxX() int {
 	_, x := w.window.MaxYX()
 
 	return x
+}
+
+func wordBegin(s string, pos int) int {
+	trim := true
+	done := false
+	for pos > 0 && !done {
+		c := rune(s[pos-1])
+		if !unicode.IsSpace(c) {
+			if !isWord(c) {
+				if trim {
+					done = true
+				} else {
+					break
+				}
+			}
+			trim = false
+		} else if !trim {
+			break
+		}
+		pos--
+	}
+
+	return pos
+}
+
+func wordEnd(s string, pos int) int {
+	trim := false
+	first := true
+
+	for pos < len(s) {
+		c := rune(s[pos])
+		if unicode.IsSpace(c) {
+			trim = true
+		} else if isWord(c) {
+			if trim {
+				break
+			}
+		} else {
+			if first {
+				trim = true
+			} else {
+				break
+			}
+		}
+		first = false
+		pos++
+	}
+
+	return pos
+}
+
+func isWord(c rune) bool {
+	return unicode.IsLetter(c) || unicode.IsNumber(c) || c == '_'
 }
