@@ -41,8 +41,7 @@ func NewTextboxWindow(w, y, x int) (*TextboxWindow, error) {
 	return &TextboxWindow{window: window}, nil
 }
 
-// TODO: This method has a lot of bugs and pretty hard to understand.
-//       We need to re-implement it in a clear straightforward way.
+// TODO: Unicode support.
 func (w *TextboxWindow) Input(prompt string) string {
 	prompt += " "
 
@@ -102,9 +101,27 @@ func (w *TextboxWindow) Input(prompt string) string {
 				x--
 			}
 		} else if ch == KEY_ETB {
-			// TODO:
+			trim := true
+			done := false
+			for pos > 0 && !done {
+				c := rune(buf[pos-1])
+				if !unicode.IsSpace(c) {
+					if !unicode.IsLetter(c) && !unicode.IsNumber(c) {
+						if trim {
+							done = true
+						} else {
+							break
+						}
+					}
+					trim = false
+				} else if !trim {
+					break
+				}
+				buf = buf[:pos-1] + buf[pos:]
+				pos--
+				x--
+			}
 		} else if ch == KEY_VT {
-			// TODO:
 			buf = buf[:pos]
 		} else if unicode.IsPrint(rune(ch)) {
 			buf = buf[:pos] + string(ch) + buf[pos:]
