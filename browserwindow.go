@@ -142,12 +142,12 @@ func (w *BrowserWindow) Section() config.Section {
 
 func (w *BrowserWindow) Command(cmd config.Command) error {
 	switch cmd {
-	case config.CommandApply:
+	case config.CommandEnter:
 		i := w.list.Cursor()
 		if i != nil {
 			w.apply(i.(Item))
 		}
-	case config.CommandApplyDir:
+	case config.CommandPlay:
 		i := w.list.Cursor()
 		if i != nil {
 			w.play(i.(Item))

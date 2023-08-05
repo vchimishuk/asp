@@ -40,16 +40,16 @@ const (
 type Command string
 
 const (
-	CommandApply      Command = "apply"
-	CommandApplyDir   Command = "apply-dir"
 	CommandBack       Command = "back"
 	CommandEnd        Command = "end"
+	CommandEnter      Command = "enter"
 	CommandHome       Command = "home"
 	CommandNext       Command = "next"
 	CommandNoop       Command = "noop"
 	CommandPageDown   Command = "page-down"
 	CommandPageUp     Command = "page-up"
 	CommandPause      Command = "pause"
+	CommandPlay       Command = "play"
 	CommandPrev       Command = "prev"
 	CommandQuit       Command = "quit"
 	CommandSearch     Command = "search"
@@ -81,11 +81,11 @@ var defaultKeys = Keys{
 	},
 	SectionPlaylist: {},
 	SectionBrowser: {
-		CommandApply:    {ncurses.KEY_RETURN},
-		CommandApplyDir: {ncurses.Key('x')},
 		CommandBack: {ncurses.KEY_BACKSPACE, ncurses.Key('h'),
 			ctrlKey('h')},
-		CommandSelected: {ncurses.Key('S')},
+		CommandEnter:    {ncurses.KEY_RETURN},
+		CommandPlay:     {ncurses.Key('x')},
+		CommandSelected: {ncurses.Key('G')},
 	},
 }
 
@@ -162,8 +162,8 @@ func ParseKeys(r io.Reader) (Keys, error) {
 
 func parseCommand(s string) Command {
 	switch s {
-	case string(CommandApply):
-		return CommandApply
+	case string(CommandEnter):
+		return CommandEnter
 	case string(CommandNext):
 		return CommandNext
 	case string(CommandPrev):
