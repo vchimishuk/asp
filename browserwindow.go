@@ -259,8 +259,11 @@ func (w *BrowserWindow) selected() {
 
 	w.SetPath(path.Dir(p))
 	for i, _ := range w.items {
-		t := w.items[i].Track()
-		if t.Path == p {
+		it := w.items[i]
+		if it.IsDir() {
+			continue
+		}
+		if it.Track().Path == p {
 			w.list.SetCursor(i + 1)
 		}
 	}
