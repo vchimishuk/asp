@@ -197,33 +197,47 @@ func keyToCmd(keys config.Keys, key ncurses.Key) config.Command {
 func handleEvents(client *chubby.Chubby) {
 	var state chubby.State = chubby.StateStopped
 	var track *chubby.Track
-	// var plist *chubby.Playlist
 	var started int64
-	// var plistPos int
 	var ticker *time.Ticker
-	//ticker := time.NewTicker(time.Millisecond * 500)
-	// defer ticker.Stop()
 
-	// TODO: Initial state display.
-	// st, err := client.Status()
-	// if err == nil {
-	// 	events <- &chubby.StatusEvent{
-	// 		State:       st.State,
-	// 		PlaylistPos: st.PlaylistPos,
-	// 		TrackPos:    st.TrackPos,
-	// 		Playlist:    st.Playlist,
-	// 		Track:       st.Track,
-	// 	}
-	// }
-	statusWnd.Update(state, make(map[string]string))
+	events, err := client.Events(true)
+	if err != nil {
+		// TODO: Handle error -- retry in loop.
+		panic(err)
+	}
 
-	// TODO: Handle error -- retry in loop.
-	events, _ := client.Events(true)
-	// TODO: Update initial state.
+	st, err := client.Status()
+	if err != nil {
+		// TODO:
+		panic(err)
+	}
+	state = st.State
+	track = st.Track
+	started = time.Now().Unix() - int64(st.TrackPos)
 
 	for {
+		data := make(map[string]string)
+		if track != nil {
+			data["p"] = track.Path
+			data["a"] = track.Artist
+			data["b"] = track.Album
+			data["t"] = track.Title
+			data["n"] = strconv.Itoa(track.Number)
+			data["l"] = track.Length.String()
+			data["o"] = ctime.Time(time.Now().Unix() -
+				started).String()
+			// "r": strconv.Itoa(plist.Length),
+			// "q": strconv.Itoa(se.PlistPos),
+		}
+
+		ncursesMu.Lock()
+		browserWnd.SetSelected(data["p"])
+		// TODO: Set selected for playlist window.
+		statusWnd.Update(state, data)
+		ncursesMu.Unlock()
+
 		if state == chubby.StatePlaying && ticker == nil {
-			ticker = time.NewTicker(time.Millisecond * 888)
+			ticker = time.NewTicker(time.Millisecond * 900)
 		} else if state != chubby.StatePlaying && ticker != nil {
 			ticker.Stop()
 			ticker = nil
@@ -247,33 +261,6 @@ func handleEvents(client *chubby.Chubby) {
 			}
 		case <-tickerCh:
 		}
-
-		data := make(map[string]string)
-		if track != nil {
-			data["p"] = track.Path
-			data["a"] = track.Artist
-			data["b"] = track.Album
-			data["t"] = track.Title
-			data["n"] = strconv.Itoa(track.Number)
-			data["l"] = track.Length.String()
-			data["o"] = ctime.Time(time.Now().Unix() - started).String()
-		}
-		// "r": strconv.Itoa(plist.Length),
-		// "q": strconv.Itoa(se.PlistPos),
-
-		ncursesMu.Lock()
-		browserWnd.SetSelected(data["p"])
-		// TODO: Set selected for playlist window.
-		statusWnd.Update(state, data)
-
-		//stdScr.Refresh()
-		// ncurses.UpdatePanels()
-		// if err := ncurses.Update(); err != nil {
-		// 	panic(err)
-		// }
-		ncursesMu.Unlock()
-		// os.Stdout.WriteString("")
-		// os.Stderr.Sync()
 	}
 
 	if ticker != nil {
