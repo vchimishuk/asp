@@ -1,4 +1,6 @@
 github.com/gbin/goncurses v0.0.0-20141106211150-34d9399fcea5 h1:1zsAMqM0C3Yjv9KWjh/68s/07bYeev6c0D4FwHkl13w=
 github.com/gbin/goncurses v0.0.0-20141106211150-34d9399fcea5/go.mod h1:dmRjyC3ZOQQ4EXWMOIAQi0TLaJPcg61LFsJ9mvhSGRE=
-github.com/vchimishuk/chubby v0.0.0-20230708203843-f7ab3db3dd83 h1:ucAII9ohUWVH/OvkG4zFeBcpEfHmdfqOVIxvZl7+Vss=
-github.com/vchimishuk/chubby v0.0.0-20230708203843-f7ab3db3dd83/go.mod h1:WG3U84IdkwKpNaYrc0bXm1SRH/XRbP5DvIOwXvW3XZg=
+github.com/vchimishuk/chubby v0.0.0-20230807191819-13c8ec8a8d1e h1:hlryX16F3Z+CtxP5N/YLNoHgI9f/89Q5pQ+eyg94eEM=
+github.com/vchimishuk/chubby v0.0.0-20230807191819-13c8ec8a8d1e/go.mod h1:WG3U84IdkwKpNaYrc0bXm1SRH/XRbP5DvIOwXvW3XZg=
+github.com/vchimishuk/config v0.0.0-20221124223829-a4bae9203074 h1:QVxXWr8vMJxyGU9Rjis2D0h7BDEGk0DN46d6JEhoACY=
+github.com/vchimishuk/config v0.0.0-20221124223829-a4bae9203074/go.mod h1:4/fxN1V3/I1ujlZv5gf0KzQOv3/4nObqzqvkC4uf3X4=

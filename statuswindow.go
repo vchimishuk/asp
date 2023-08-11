@@ -18,8 +18,7 @@ func NewStatusWindow(w, y, x int) (*StatusWindow, error) {
 	if err != nil {
 		return nil, err
 	}
-	// TODO: Separate color.
-	panel.SetBackground(config.ColorPair(config.ColorTitle))
+	panel.SetBackground(config.ColorStatus)
 
 	return &StatusWindow{
 		panel:       panel,

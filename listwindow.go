@@ -41,25 +41,25 @@ func NewListWindow(parent *ncurses.Window, input func(string) string) (*ListWind
 	}, nil
 }
 
-func (w *ListWindow) Command(cmd config.Command) {
+func (w *ListWindow) Command(cmd config.Cmd) {
 	switch cmd {
-	case config.CommandEnd:
+	case config.CmdEnd:
 		w.End()
-	case config.CommandHome:
+	case config.CmdHome:
 		w.Home()
-	case config.CommandNext:
+	case config.CmdNext:
 		w.Next()
-	case config.CommandPageDown:
+	case config.CmdPageDown:
 		w.PageDown()
-	case config.CommandPageUp:
+	case config.CmdPageUp:
 		w.PageUp()
-	case config.CommandPrev:
+	case config.CmdPrev:
 		w.Prev()
-	case config.CommandSearch:
+	case config.CmdSearch:
 		w.search()
-	case config.CommandSearchNext:
+	case config.CmdSearchNext:
 		w.searchNext()
-	case config.CommandSearchPrev:
+	case config.CmdSearchPrev:
 		w.searchPrev()
 	}
 }
@@ -278,31 +278,33 @@ func (w *ListWindow) refresh() {
 	l := len(w.items)
 
 	for i := 0; i < height; i++ {
+		var attr ncurses.Char
+		var s string
 		ii := w.offset + i
 
 		if w.offset == -1 || ii > l-1 {
-			w.window.MovePrint(i, 0, strings.Repeat(" ", width))
+			attr = config.ColorNormal
+			s = strings.Repeat(" ", width)
 		} else {
+			attr = config.ColorList
 			sel := w.items[ii].IsSelected(w.selected)
 
 			if sel || ii == w.cursor {
-				var attr ncurses.Char
 
 				if sel && ii == w.cursor {
-					attr = config.ColorPair(config.ColorCursorSelected)
+					attr = config.ColorCursorSelected
 				} else if sel {
-					attr = config.ColorPair(config.ColorListSelected)
+					attr = config.ColorListSelected
 				} else { // ii == w.cursor
-					attr = config.ColorPair(config.ColorCursor)
+					attr = config.ColorCursor
 				}
-
-				w.window.AttrOn(attr)
-				w.window.MovePrint(i, 0, w.items[ii].Format(width))
-				w.window.AttrOff(attr)
-			} else {
-				w.window.MovePrint(i, 0, w.items[ii].Format(width))
 			}
+			s = w.items[ii].Format(width)
 		}
+
+		w.window.AttrOn(attr)
+		w.window.MovePrint(i, 0, s)
+		w.window.AttrOff(attr)
 	}
 
 	w.window.Refresh()

@@ -9,8 +9,6 @@ package main
 
 import (
 	"fmt"
-	"os/user"
-	"path/filepath"
 	"strconv"
 	gosync "sync"
 	"time"
@@ -39,32 +37,28 @@ func main() {
 		}
 	}()
 
-	u, err := user.Current()
-	if err != nil {
+	if err = initNcurses(); err != nil {
+		// TODO: die("failed to initalize ncurses: %s", err)
 		return
 	}
-	keys, err := config.ParseKeysFile(filepath.Join(u.HomeDir,
-		".config/asp/keys.conf"))
-	if err != nil {
-		return
-	}
-	colors, err := config.ParseColorsFile(filepath.Join(u.HomeDir,
-		".config/asp/colors.conf"))
-	if err != nil {
-		return
+	defer destroyNcurses()
+
+	if err := config.Load(); err != nil {
+		// TODO: call die()
+		panic(fmt.Sprintf("error: failed to load config: %s", err))
 	}
 
 	client := &chubby.Chubby{}
-	// TODO: host:port
-	if err = client.Connect("localhost", 5115); err != nil {
+	// TODO: Config.
+	if err := client.Connect("localhost", 5115); err != nil {
 		return
 	}
 	defer client.Close()
 
-	if err = initUI(colors, client); err != nil {
+	if err := initUI(client); err != nil {
+		// TODO: die("failed to initalize UI: %s", err)
 		return
 	}
-	defer releaseUI()
 
 	// Listen for server notifications.
 	// stopNoticeLoop := sync.NewCond(1)
@@ -78,7 +72,7 @@ func main() {
 
 		ch := stdScr.GetChar()
 		key := ncurses.Key(ch)
-		cmd := keyToCmd(keys, key)
+		cmd := config.Command(key)
 
 		ncursesMu.Lock()
 		err := browserWnd.Command(cmd)
@@ -87,20 +81,20 @@ func main() {
 			// TODO: Display it in status
 		}
 		switch cmd {
-		case config.CommandPause:
+		case config.CmdPause:
 			// TODO: Error handling.
 			client.Pause()
-		case config.CommandStop:
+		case config.CmdStop:
 			// TODO: Error handling.
 			client.Stop()
-		case config.CommandQuit:
+		case config.CmdQuit:
 			// TODO: Close client.
 			return
 		}
 	}
 }
 
-func initUI(colors config.Colors, client *chubby.Chubby) error {
+func initNcurses() error {
 	var err error
 	stdScr, err = ncurses.Init()
 	if err != nil {
@@ -112,9 +106,6 @@ func initUI(colors config.Colors, client *chubby.Chubby) error {
 	if err := ncurses.StartColor(); err != nil {
 		return err
 	}
-	if err := initColors(colors); err != nil {
-		return err
-	}
 
 	ncurses.Echo(false)
 	ncurses.CBreak(true)
@@ -122,13 +113,22 @@ func initUI(colors config.Colors, client *chubby.Chubby) error {
 	// nonl()
 	// raw()
 
+	return nil
+}
+
+func destroyNcurses() {
+	ncurses.End()
+}
+
+func initUI(client *chubby.Chubby) error {
+	var err error
 	h, w := stdScr.MaxYX()
 	// Top panel window.
 	titleWnd, err = NewPanelWindow(w, 0, 0)
 	if err != nil {
 		return err
 	}
-	titleWnd.SetBackground(config.ColorPair(config.ColorTitle))
+	titleWnd.SetBackground(config.ColorTitle)
 
 	// Bottom panel window -- window above command one.
 	statusWnd, err = NewStatusWindow(w, h-2, 0)
@@ -136,7 +136,7 @@ func initUI(colors config.Colors, client *chubby.Chubby) error {
 		return err
 	}
 
-	// The lowes command window.
+	// The lowest command window.
 	cmdWnd, err = NewCommandWindow(w, h-1, 0)
 	if err != nil {
 		return err
@@ -148,50 +148,13 @@ func initUI(colors config.Colors, client *chubby.Chubby) error {
 	if err != nil {
 		return err
 	}
-	browserWnd.SetPath("/") // TODO: Set las dir.
+	// TODO: Set las dir.
+	browserWnd.SetPath("/")
 
 	ncurses.UpdatePanels()
 	ncurses.Update()
 
 	return nil
-}
-
-func releaseUI() {
-	ncurses.End()
-}
-
-func initColors(colors config.Colors) error {
-	for id, c := range colors {
-		err := ncurses.InitPair(int16(id), int16(c.Fg), int16(c.Bg))
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func keyToCmd(keys config.Keys, key ncurses.Key) config.Command {
-	sect, ok := keys[config.SectionBrowser]
-	if !ok {
-		return config.CommandNoop
-	}
-	for cmd, ks := range sect {
-		for _, k := range ks {
-			if k == key {
-				return cmd
-			}
-		}
-	}
-	for cmd, ks := range keys[config.SectionGlobal] {
-		for _, k := range ks {
-			if k == key {
-				return cmd
-			}
-		}
-	}
-
-	return config.CommandNoop
 }
 
 func handleEvents(client *chubby.Chubby) {

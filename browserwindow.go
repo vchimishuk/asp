@@ -136,25 +136,21 @@ func NewBrowserWindow(client *chubby.Chubby, input func(string) string,
 	}, nil
 }
 
-func (w *BrowserWindow) Section() config.Section {
-	return config.SectionBrowser
-}
-
-func (w *BrowserWindow) Command(cmd config.Command) error {
+func (w *BrowserWindow) Command(cmd config.Cmd) error {
 	switch cmd {
-	case config.CommandEnter:
+	case config.CmdApply:
 		i := w.list.Cursor()
 		if i != nil {
 			w.apply(i.(Item))
 		}
-	case config.CommandPlay:
+	case config.CmdPlay:
 		i := w.list.Cursor()
 		if i != nil {
 			w.play(i.(Item))
 		}
-	case config.CommandBack:
+	case config.CmdBack:
 		w.back()
-	case config.CommandSelected:
+	case config.CmdSelected:
 		w.selected()
 	default:
 		w.list.Command(cmd)
