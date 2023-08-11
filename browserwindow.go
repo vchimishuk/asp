@@ -175,7 +175,7 @@ func (w *BrowserWindow) Path() string {
 func (w *BrowserWindow) SetPath(p string) {
 	entries, err := w.client.List(p)
 	if err != nil {
-		// TODO: Print error in status and exit.
+		// TODO: Print error in status and exit from the function.
 		panic(err)
 	}
 	w.items = entries

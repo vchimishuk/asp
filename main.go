@@ -9,6 +9,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	gosync "sync"
 	"time"
@@ -59,6 +60,19 @@ func main() {
 		// TODO: die("failed to initalize UI: %s", err)
 		return
 	}
+
+	p, err := config.LoadPath()
+	if err != nil {
+		p = "/"
+	}
+	browserWnd.SetPath(p)
+	defer func() {
+		err := config.SavePath(browserWnd.Path())
+		if err != nil {
+			fmt.Fprintf(os.Stderr,
+				"failed to save current path: %w", err)
+		}
+	}()
 
 	// Listen for server notifications.
 	// stopNoticeLoop := sync.NewCond(1)
@@ -148,8 +162,6 @@ func initUI(client *chubby.Chubby) error {
 	if err != nil {
 		return err
 	}
-	// TODO: Set las dir.
-	browserWnd.SetPath("/")
 
 	ncurses.UpdatePanels()
 	ncurses.Update()

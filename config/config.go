@@ -232,12 +232,12 @@ var defKeymap = map[Cmd][]ncurses.Key{
 var keymap map[ncurses.Key]Cmd = make(map[ncurses.Key]Cmd)
 
 func Load() error {
-	u, err := user.Current()
+	var cfg *config.Config
+	cd, err := configDir()
 	if err != nil {
 		return err
 	}
-	var cfg *config.Config
-	file := filepath.Join(u.HomeDir, ".config/asp/asp.conf")
+	file := filepath.Join(cd, "asp.conf")
 	d, err := os.ReadFile(file)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -346,4 +346,18 @@ func initPair(id int, s string) (ncurses.Char, error) {
 func ctrlKey(r rune) ncurses.Key {
 	return ncurses.Key(r) & 0x1F
 
+}
+
+func configDir() (string, error) {
+	ch := os.Getenv("XDG_CONFIG_HOME")
+	if ch != "" {
+		return ch, nil
+	}
+
+	u, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(u.HomeDir, ".config/asp"), nil
 }
