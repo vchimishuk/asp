@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	ncurses "github.com/gbin/goncurses"
@@ -54,67 +55,67 @@ var spec = &config.Spec{
 			Strict: true,
 			Properties: []*config.PropertySpec{
 				&config.PropertySpec{
-					Type: config.TypeString,
+					Type: config.TypeStringList,
 					Name: string(CmdApply),
 				},
 				&config.PropertySpec{
-					Type: config.TypeString,
+					Type: config.TypeStringList,
 					Name: string(CmdBack),
 				},
 				&config.PropertySpec{
-					Type: config.TypeString,
+					Type: config.TypeStringList,
 					Name: string(CmdEnd),
 				},
 				&config.PropertySpec{
-					Type: config.TypeString,
+					Type: config.TypeStringList,
 					Name: string(CmdHome),
 				},
 				&config.PropertySpec{
-					Type: config.TypeString,
+					Type: config.TypeStringList,
 					Name: string(CmdNext),
 				},
 				&config.PropertySpec{
-					Type: config.TypeString,
+					Type: config.TypeStringList,
 					Name: string(CmdPageDown),
 				},
 				&config.PropertySpec{
-					Type: config.TypeString,
+					Type: config.TypeStringList,
 					Name: string(CmdPageUp),
 				},
 				&config.PropertySpec{
-					Type: config.TypeString,
+					Type: config.TypeStringList,
 					Name: string(CmdPause),
 				},
 				&config.PropertySpec{
-					Type: config.TypeString,
+					Type: config.TypeStringList,
 					Name: string(CmdPlay),
 				},
 				&config.PropertySpec{
-					Type: config.TypeString,
+					Type: config.TypeStringList,
 					Name: string(CmdPrev),
 				},
 				&config.PropertySpec{
-					Type: config.TypeString,
+					Type: config.TypeStringList,
 					Name: string(CmdQuit),
 				},
 				&config.PropertySpec{
-					Type: config.TypeString,
+					Type: config.TypeStringList,
 					Name: string(CmdSearch),
 				},
 				&config.PropertySpec{
-					Type: config.TypeString,
+					Type: config.TypeStringList,
 					Name: string(CmdSearchNext),
 				},
 				&config.PropertySpec{
-					Type: config.TypeString,
+					Type: config.TypeStringList,
 					Name: string(CmdSearchPrev),
 				},
 				&config.PropertySpec{
-					Type: config.TypeString,
+					Type: config.TypeStringList,
 					Name: string(CmdSelected),
 				},
 				&config.PropertySpec{
-					Type: config.TypeString,
+					Type: config.TypeStringList,
 					Name: string(CmdStop),
 				},
 			},
@@ -282,7 +283,13 @@ func initKeymap(cfg *config.Config) error {
 
 	for cmd, keys := range defKeymap {
 		if block.Has(string(cmd)) {
-			// TODO: Parse key.
+			for _, s := range block.StringList(string(cmd)) {
+				k, err := parseKey(s)
+				if err != nil {
+					return err
+				}
+				keymap[k] = cmd
+			}
 		} else {
 			for _, k := range keys {
 				keymap[k] = cmd
@@ -300,13 +307,13 @@ func initColors(cfg *config.Config) error {
 		Name string
 		Def  string
 	}{
-		{1, &ColorCursor, "cursor", "black,cyan"},
-		{2, &ColorCursorSelected, "cursor-selected", "red,cyan"},
-		{3, &ColorList, "list", "white,black"},
-		{4, &ColorListSelected, "list-selected", "red,black"},
-		{5, &ColorNormal, "normal", "white,black"},
-		{6, &ColorStatus, "status", "black,blue"},
-		{7, &ColorTitle, "title", "black,blue"},
+		{1, &ColorCursor, "cursor", "black:cyan"},
+		{2, &ColorCursorSelected, "cursor-selected", "red:cyan"},
+		{3, &ColorList, "list", "white:black"},
+		{4, &ColorListSelected, "list-selected", "red:black"},
+		{5, &ColorNormal, "normal", "white:black"},
+		{6, &ColorStatus, "status", "black:blue"},
+		{7, &ColorTitle, "title", "black:blue"},
 	}
 
 	block := &config.Block{}
@@ -327,12 +334,15 @@ func initColors(cfg *config.Config) error {
 }
 
 func initPair(id int, s string) (ncurses.Char, error) {
-	pts := strings.SplitN(s, ",", 2)
+	pts := strings.SplitN(s, ":", 2)
 	if len(pts) != 2 {
 		return 0, fmt.Errorf("invalid color pair: %s", s)
 	}
-	fg := colorNames[pts[0]]
-	bg := colorNames[pts[1]]
+	fg, okf := colorNames[pts[0]]
+	bg, okb := colorNames[pts[1]]
+	if !okf || !okb {
+		return 0, fmt.Errorf("invalid color pair: %s", s)
+	}
 
 	err := ncurses.InitPair(int16(id), fg, bg)
 	if err != nil {
@@ -341,6 +351,19 @@ func initPair(id int, s string) (ncurses.Char, error) {
 	c := ncurses.ColorPair(int16(id))
 
 	return c, nil
+}
+
+func parseKey(s string) (ncurses.Key, error) {
+	if len(s) == 1 {
+		return ncurses.Key(rune(s[0])), nil
+	} else if len(s) == 2 && s[0] == '^' {
+		return ctrlKey(rune(s[1])), nil
+	} else if len(s) > 1 && s[0] == '#' {
+		i, err := strconv.Atoi(s[1:])
+		return ncurses.Key(i), err
+	} else {
+		return 0, fmt.Errorf("invalid key: %s", s)
+	}
 }
 
 func ctrlKey(r rune) ncurses.Key {
