@@ -13,7 +13,6 @@ import (
 	"github.com/vchimishuk/config"
 )
 
-// TODO: Add to github.com/vchimishuk/config custom value validator?
 var spec = &config.Spec{
 	Blocks: []*config.BlockSpec{
 		&config.BlockSpec{
@@ -21,32 +20,39 @@ var spec = &config.Spec{
 			Strict: true,
 			Properties: []*config.PropertySpec{
 				&config.PropertySpec{
-					Type: config.TypeString,
-					Name: string("cursor"),
+					Type:   config.TypeString,
+					Name:   string("cursor"),
+					Parser: parseColor,
 				},
 				&config.PropertySpec{
-					Type: config.TypeString,
-					Name: string("cursor-selected"),
+					Type:   config.TypeString,
+					Name:   string("cursor-selected"),
+					Parser: parseColor,
 				},
 				&config.PropertySpec{
-					Type: config.TypeString,
-					Name: string("list"),
+					Type:   config.TypeString,
+					Name:   string("list"),
+					Parser: parseColor,
 				},
 				&config.PropertySpec{
-					Type: config.TypeString,
-					Name: string("list-selected"),
+					Type:   config.TypeString,
+					Name:   string("list-selected"),
+					Parser: parseColor,
 				},
 				&config.PropertySpec{
-					Type: config.TypeString,
-					Name: string("normal"),
+					Type:   config.TypeString,
+					Name:   string("normal"),
+					Parser: parseColor,
 				},
 				&config.PropertySpec{
-					Type: config.TypeString,
-					Name: string("status"),
+					Type:   config.TypeString,
+					Name:   string("status"),
+					Parser: parseColor,
 				},
 				&config.PropertySpec{
-					Type: config.TypeString,
-					Name: string("title"),
+					Type:   config.TypeString,
+					Name:   string("title"),
+					Parser: parseColor,
 				},
 			},
 		},
@@ -55,68 +61,84 @@ var spec = &config.Spec{
 			Strict: true,
 			Properties: []*config.PropertySpec{
 				&config.PropertySpec{
-					Type: config.TypeStringList,
-					Name: string(CmdApply),
+					Type:   config.TypeStringList,
+					Name:   string(CmdApply),
+					Parser: parseKey,
 				},
 				&config.PropertySpec{
-					Type: config.TypeStringList,
-					Name: string(CmdBack),
+					Type:   config.TypeStringList,
+					Name:   string(CmdBack),
+					Parser: parseKey,
 				},
 				&config.PropertySpec{
-					Type: config.TypeStringList,
-					Name: string(CmdEnd),
+					Type:   config.TypeStringList,
+					Name:   string(CmdEnd),
+					Parser: parseKey,
 				},
 				&config.PropertySpec{
-					Type: config.TypeStringList,
-					Name: string(CmdHome),
+					Type:   config.TypeStringList,
+					Name:   string(CmdHome),
+					Parser: parseKey,
 				},
 				&config.PropertySpec{
-					Type: config.TypeStringList,
-					Name: string(CmdNext),
+					Type:   config.TypeStringList,
+					Name:   string(CmdNext),
+					Parser: parseKey,
 				},
 				&config.PropertySpec{
-					Type: config.TypeStringList,
-					Name: string(CmdPageDown),
+					Type:   config.TypeStringList,
+					Name:   string(CmdPageDown),
+					Parser: parseKey,
 				},
 				&config.PropertySpec{
-					Type: config.TypeStringList,
-					Name: string(CmdPageUp),
+					Type:   config.TypeStringList,
+					Name:   string(CmdPageUp),
+					Parser: parseKey,
 				},
 				&config.PropertySpec{
-					Type: config.TypeStringList,
-					Name: string(CmdPause),
+					Type:   config.TypeStringList,
+					Name:   string(CmdPause),
+					Parser: parseKey,
 				},
 				&config.PropertySpec{
-					Type: config.TypeStringList,
-					Name: string(CmdPlay),
+					Type:   config.TypeStringList,
+					Name:   string(CmdPlay),
+					Parser: parseKey,
 				},
 				&config.PropertySpec{
-					Type: config.TypeStringList,
-					Name: string(CmdPrev),
+					Type:   config.TypeStringList,
+					Name:   string(CmdPrev),
+					Parser: parseKey,
 				},
 				&config.PropertySpec{
-					Type: config.TypeStringList,
-					Name: string(CmdQuit),
+					Type:   config.TypeStringList,
+					Name:   string(CmdQuit),
+					Parser: parseKey,
 				},
 				&config.PropertySpec{
-					Type: config.TypeStringList,
-					Name: string(CmdSearch),
+					Type:   config.TypeStringList,
+					Name:   string(CmdSearch),
+					Parser: parseKey,
 				},
 				&config.PropertySpec{
-					Type: config.TypeStringList,
-					Name: string(CmdSearchNext),
+					Type:   config.TypeStringList,
+					Name:   string(CmdSearchNext),
+					Parser: parseKey,
 				},
 				&config.PropertySpec{
-					Type: config.TypeStringList,
-					Name: string(CmdSearchPrev),
+					Type:   config.TypeStringList,
+					Name:   string(CmdSearchPrev),
+					Parser: parseKey,
 				},
 				&config.PropertySpec{
-					Type: config.TypeStringList,
-					Name: string(CmdSelected),
+					Type:   config.TypeStringList,
+					Name:   string(CmdSelected),
+					Parser: parseKey,
 				},
 				&config.PropertySpec{
-					Type: config.TypeStringList,
-					Name: string(CmdStop),
+					Type:   config.TypeStringList,
+					Name:   string(CmdStop),
+					Parser: parseKey,
 				},
 			},
 		},
@@ -282,18 +304,9 @@ func initKeymap(cfg *config.Config) error {
 	}
 
 	for cmd, keys := range defKeymap {
-		if block.Has(string(cmd)) {
-			for _, s := range block.StringList(string(cmd)) {
-				k, err := parseKey(s)
-				if err != nil {
-					return err
-				}
-				keymap[k] = cmd
-			}
-		} else {
-			for _, k := range keys {
-				keymap[k] = cmd
-			}
+		ks := block.AnyOr(string(cmd), keys).([]ncurses.Key)
+		for _, k := range ks {
+			keymap[k] = cmd
 		}
 	}
 
@@ -302,18 +315,32 @@ func initKeymap(cfg *config.Config) error {
 
 func initColors(cfg *config.Config) error {
 	colors := []struct {
-		ID   int
+		ID   int16
 		Var  *ncurses.Char
 		Name string
-		Def  string
+		Def  []int16
 	}{
-		{1, &ColorCursor, "cursor", "black:cyan"},
-		{2, &ColorCursorSelected, "cursor-selected", "red:cyan"},
-		{3, &ColorList, "list", "white:black"},
-		{4, &ColorListSelected, "list-selected", "red:black"},
-		{5, &ColorNormal, "normal", "white:black"},
-		{6, &ColorStatus, "status", "black:blue"},
-		{7, &ColorTitle, "title", "black:blue"},
+		{1, &ColorCursor, "cursor",
+			[]int16{colorNames["black"],
+				colorNames["cyan"]}},
+		{2, &ColorCursorSelected, "cursor-selected",
+			[]int16{colorNames["red"],
+				colorNames["cyan"]}},
+		{3, &ColorList, "list",
+			[]int16{colorNames["white"],
+				colorNames["black"]}},
+		{4, &ColorListSelected, "list-selected",
+			[]int16{colorNames["red"],
+				colorNames["black"]}},
+		{5, &ColorNormal, "normal",
+			[]int16{colorNames["white"],
+				colorNames["black"]}},
+		{6, &ColorStatus, "status",
+			[]int16{colorNames["black"],
+				colorNames["blue"]}},
+		{7, &ColorTitle, "title",
+			[]int16{colorNames["black"],
+				colorNames["blue"]}},
 	}
 
 	block := &config.Block{}
@@ -322,48 +349,56 @@ func initColors(cfg *config.Config) error {
 	}
 
 	for _, c := range colors {
-		// TODO: Config value validation.
-		cl, err := initPair(c.ID, block.StringOr(c.Name, c.Def))
+		v := block.AnyOr(c.Name, c.Def)
+		fg := v.([]int16)[0]
+		bg := v.([]int16)[1]
+		err := ncurses.InitPair(c.ID, fg, bg)
 		if err != nil {
 			return err
 		}
-		*c.Var = cl
+		*c.Var = ncurses.ColorPair(c.ID)
 	}
 
 	return nil
 }
 
-func initPair(id int, s string) (ncurses.Char, error) {
-	pts := strings.SplitN(s, ":", 2)
+func parseColor(v any) (any, error) {
+	pts := strings.SplitN(v.(string), ":", 2)
 	if len(pts) != 2 {
-		return 0, fmt.Errorf("invalid color pair: %s", s)
+		return 0, errors.New("invalid color pair")
 	}
-	fg, okf := colorNames[pts[0]]
-	bg, okb := colorNames[pts[1]]
-	if !okf || !okb {
-		return 0, fmt.Errorf("invalid color pair: %s", s)
+	fg, ok := colorNames[pts[0]]
+	if !ok {
+		return 0, fmt.Errorf("invalid color: %s", pts[0])
+	}
+	bg, ok := colorNames[pts[1]]
+	if !ok {
+		return 0, fmt.Errorf("invalid color: %s", pts[1])
 	}
 
-	err := ncurses.InitPair(int16(id), fg, bg)
-	if err != nil {
-		return 0, err
-	}
-	c := ncurses.ColorPair(int16(id))
-
-	return c, nil
+	return []int16{fg, bg}, nil
 }
 
-func parseKey(s string) (ncurses.Key, error) {
-	if len(s) == 1 {
-		return ncurses.Key(rune(s[0])), nil
-	} else if len(s) == 2 && s[0] == '^' {
-		return ctrlKey(rune(s[1])), nil
-	} else if len(s) > 1 && s[0] == '#' {
-		i, err := strconv.Atoi(s[1:])
-		return ncurses.Key(i), err
-	} else {
-		return 0, fmt.Errorf("invalid key: %s", s)
+func parseKey(v any) (any, error) {
+	res := []ncurses.Key{}
+
+	for _, s := range v.([]string) {
+		if len(s) == 1 {
+			res = append(res, ncurses.Key(rune(s[0])))
+		} else if len(s) == 2 && s[0] == '^' {
+			res = append(res, ctrlKey(rune(s[1])))
+		} else if len(s) > 1 && s[0] == '#' {
+			i, err := strconv.Atoi(s[1:])
+			if err != nil {
+				return nil, err
+			}
+			res = append(res, ncurses.Key(i))
+		} else {
+			return nil, fmt.Errorf("invalid key: %s", s)
+		}
 	}
+
+	return res, nil
 }
 
 func ctrlKey(r rune) ncurses.Key {
