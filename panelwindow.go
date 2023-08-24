@@ -2,6 +2,7 @@ package main
 
 import (
 	"strings"
+	"unicode/utf8"
 
 	ncurses "github.com/gbin/goncurses"
 )
@@ -53,7 +54,7 @@ func (w *PanelWindow) refresh() {
 	// s := w.fmtr.Format(data, width)
 	// w.window.Erase()
 	w.window.MovePrint(0, 0, w.text)
-	l := len(w.text)
+	l := utf8.RuneCountInString(w.text)
 	if l < w.Width() {
 		w.window.MovePrint(0, l, strings.Repeat(" ", w.Width()-l))
 	}
