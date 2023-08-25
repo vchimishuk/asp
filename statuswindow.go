@@ -18,7 +18,7 @@ func NewStatusWindow(w, y, x int) (*StatusWindow, error) {
 	if err != nil {
 		return nil, err
 	}
-	panel.SetBackground(config.ColorStatus)
+	panel.SetColor(config.ColorStatus)
 
 	return &StatusWindow{
 		panel:       panel,

@@ -21,7 +21,7 @@ import (
 )
 
 var stdScr *ncurses.Window
-var titleWnd *PanelWindow
+var titleWnd *TitleWindow
 var statusWnd *StatusWindow
 var cmdWnd *CommandWindow
 var browserWnd *BrowserWindow
@@ -81,7 +81,9 @@ func main() {
 
 	for {
 		ncursesMu.Lock()
-		titleWnd.SetText(" " + browserWnd.Path())
+		titleWnd.Update(map[string]string{
+			"p": browserWnd.Path(),
+		})
 		ncursesMu.Unlock()
 
 		ch := stdScr.GetChar()
@@ -138,11 +140,10 @@ func initUI(client *chubby.Chubby) error {
 	var err error
 	h, w := stdScr.MaxYX()
 	// Top panel window.
-	titleWnd, err = NewPanelWindow(w, 0, 0)
+	titleWnd, err = NewTitleWindow(w, 0, 0)
 	if err != nil {
 		return err
 	}
-	titleWnd.SetBackground(config.ColorTitle)
 
 	// Bottom panel window -- window above command one.
 	statusWnd, err = NewStatusWindow(w, h-2, 0)
