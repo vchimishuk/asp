@@ -14,133 +14,122 @@ import (
 )
 
 var spec = &config.Spec{
-	Blocks: []*config.BlockSpec{
-		&config.BlockSpec{
-			Name:   "colors",
-			Strict: true,
-			Properties: []*config.PropertySpec{
-				&config.PropertySpec{
-					Type:   config.TypeString,
-					Name:   string("cursor"),
-					Parser: parseColor,
-				},
-				&config.PropertySpec{
-					Type:   config.TypeString,
-					Name:   string("cursor-selected"),
-					Parser: parseColor,
-				},
-				&config.PropertySpec{
-					Type:   config.TypeString,
-					Name:   string("list"),
-					Parser: parseColor,
-				},
-				&config.PropertySpec{
-					Type:   config.TypeString,
-					Name:   string("list-selected"),
-					Parser: parseColor,
-				},
-				&config.PropertySpec{
-					Type:   config.TypeString,
-					Name:   string("normal"),
-					Parser: parseColor,
-				},
-				&config.PropertySpec{
-					Type:   config.TypeString,
-					Name:   string("status"),
-					Parser: parseColor,
-				},
-				&config.PropertySpec{
-					Type:   config.TypeString,
-					Name:   string("title"),
-					Parser: parseColor,
-				},
-			},
+	Strict: true,
+	Properties: []*config.PropertySpec{
+		&config.PropertySpec{
+			Type:   config.TypeString,
+			Name:   "cursor-color",
+			Parser: parseColor,
 		},
-		&config.BlockSpec{
-			Name:   "keys",
-			Strict: true,
-			Properties: []*config.PropertySpec{
-				&config.PropertySpec{
-					Type:   config.TypeStringList,
-					Name:   string(CmdApply),
-					Parser: parseKey,
-				},
-				&config.PropertySpec{
-					Type:   config.TypeStringList,
-					Name:   string(CmdBack),
-					Parser: parseKey,
-				},
-				&config.PropertySpec{
-					Type:   config.TypeStringList,
-					Name:   string(CmdEnd),
-					Parser: parseKey,
-				},
-				&config.PropertySpec{
-					Type:   config.TypeStringList,
-					Name:   string(CmdHome),
-					Parser: parseKey,
-				},
-				&config.PropertySpec{
-					Type:   config.TypeStringList,
-					Name:   string(CmdNext),
-					Parser: parseKey,
-				},
-				&config.PropertySpec{
-					Type:   config.TypeStringList,
-					Name:   string(CmdPageDown),
-					Parser: parseKey,
-				},
-				&config.PropertySpec{
-					Type:   config.TypeStringList,
-					Name:   string(CmdPageUp),
-					Parser: parseKey,
-				},
-				&config.PropertySpec{
-					Type:   config.TypeStringList,
-					Name:   string(CmdPause),
-					Parser: parseKey,
-				},
-				&config.PropertySpec{
-					Type:   config.TypeStringList,
-					Name:   string(CmdPlay),
-					Parser: parseKey,
-				},
-				&config.PropertySpec{
-					Type:   config.TypeStringList,
-					Name:   string(CmdPrev),
-					Parser: parseKey,
-				},
-				&config.PropertySpec{
-					Type:   config.TypeStringList,
-					Name:   string(CmdQuit),
-					Parser: parseKey,
-				},
-				&config.PropertySpec{
-					Type:   config.TypeStringList,
-					Name:   string(CmdSearch),
-					Parser: parseKey,
-				},
-				&config.PropertySpec{
-					Type:   config.TypeStringList,
-					Name:   string(CmdSearchNext),
-					Parser: parseKey,
-				},
-				&config.PropertySpec{
-					Type:   config.TypeStringList,
-					Name:   string(CmdSearchPrev),
-					Parser: parseKey,
-				},
-				&config.PropertySpec{
-					Type:   config.TypeStringList,
-					Name:   string(CmdSelected),
-					Parser: parseKey,
-				},
-				&config.PropertySpec{
-					Type:   config.TypeStringList,
-					Name:   string(CmdStop),
-					Parser: parseKey,
-				},
-			},
+		&config.PropertySpec{
+			Type:   config.TypeString,
+			Name:   "cursor-selected-color",
+			Parser: parseColor,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeString,
+			Name:   "list-color",
+			Parser: parseColor,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeString,
+			Name:   "list-selected-color",
+			Parser: parseColor,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeString,
+			Name:   "normal-color",
+			Parser: parseColor,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeString,
+			Name:   "status-color",
+			Parser: parseColor,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeString,
+			Name:   "title-color",
+			Parser: parseColor,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
+			Name:   string(CmdApply) + "-key",
+			Parser: parseKey,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
+			Name:   string(CmdBack) + "-key",
+			Parser: parseKey,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
+			Name:   string(CmdEnd) + "-key",
+			Parser: parseKey,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
+			Name:   string(CmdHome) + "-key",
+			Parser: parseKey,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
+			Name:   string(CmdNext) + "-key",
+			Parser: parseKey,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
+			Name:   string(CmdPageDown) + "-key",
+			Parser: parseKey,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
+			Name:   string(CmdPageUp) + "-key",
+			Parser: parseKey,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
+			Name:   string(CmdPause) + "-key",
+			Parser: parseKey,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
+			Name:   string(CmdPlay) + "-key",
+			Parser: parseKey,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
+			Name:   string(CmdPrev) + "-key",
+			Parser: parseKey,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
+			Name:   string(CmdQuit) + "-key",
+			Parser: parseKey,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
+			Name:   string(CmdSearch) + "-key",
+			Parser: parseKey,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
+			Name:   string(CmdSearchNext) + "-key",
+			Parser: parseKey,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
+			Name:   string(CmdSearchPrev) + "-key",
+			Parser: parseKey,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
+			Name:   string(CmdSelected) + "-key",
+			Parser: parseKey,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
+			Name:   string(CmdStop) + "-key",
+			Parser: parseKey,
 		},
 	},
 }
@@ -298,13 +287,8 @@ func Command(key ncurses.Key) Cmd {
 }
 
 func initKeymap(cfg *config.Config) error {
-	block := &config.Block{}
-	if cfg.Has("keys") {
-		block = cfg.Block("keys")
-	}
-
 	for cmd, keys := range defKeymap {
-		ks := block.AnyOr(string(cmd), keys).([]ncurses.Key)
+		ks := cfg.AnyOr(string(cmd)+"-key", keys).([]ncurses.Key)
 		for _, k := range ks {
 			keymap[k] = cmd
 		}
@@ -320,36 +304,31 @@ func initColors(cfg *config.Config) error {
 		Name string
 		Def  []int16
 	}{
-		{1, &ColorCursor, "cursor",
+		{1, &ColorCursor, "cursor-color",
 			[]int16{colorNames["black"],
 				colorNames["cyan"]}},
-		{2, &ColorCursorSelected, "cursor-selected",
+		{2, &ColorCursorSelected, "cursor-selected-color",
 			[]int16{colorNames["red"],
 				colorNames["cyan"]}},
-		{3, &ColorList, "list",
+		{3, &ColorList, "list-color",
 			[]int16{colorNames["white"],
 				colorNames["black"]}},
-		{4, &ColorListSelected, "list-selected",
+		{4, &ColorListSelected, "list-selected-color",
 			[]int16{colorNames["red"],
 				colorNames["black"]}},
-		{5, &ColorNormal, "normal",
+		{5, &ColorNormal, "normal-color",
 			[]int16{colorNames["white"],
 				colorNames["black"]}},
-		{6, &ColorStatus, "status",
+		{6, &ColorStatus, "status-color",
 			[]int16{colorNames["black"],
 				colorNames["blue"]}},
-		{7, &ColorTitle, "title",
+		{7, &ColorTitle, "title-color",
 			[]int16{colorNames["black"],
 				colorNames["blue"]}},
-	}
-
-	block := &config.Block{}
-	if cfg.Has("colors") {
-		block = cfg.Block("colors")
 	}
 
 	for _, c := range colors {
-		v := block.AnyOr(c.Name, c.Def)
+		v := cfg.AnyOr(c.Name, c.Def)
 		fg := v.([]int16)[0]
 		bg := v.([]int16)[1]
 		err := ncurses.InitPair(c.ID, fg, bg)
