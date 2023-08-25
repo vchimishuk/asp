@@ -19,7 +19,7 @@ func NewTitleWindow(w, y, x int) (*TitleWindow, error) {
 
 	return &TitleWindow{
 		panel: panel,
-		fmtr:  format.NewFormatter(" {%p}"),
+		fmtr:  format.NewFormatter(config.FormatTitle),
 	}, nil
 }
 

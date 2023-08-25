@@ -125,14 +125,13 @@ func NewBrowserWindow(client *chubby.Chubby, input func(string) string,
 	}
 
 	return &BrowserWindow{
-		path:   "",
-		client: client,
-		panel:  ncurses.NewPanel(root),
-		// title:     title, // TODO: Add browser.title & playlist.title fmtrs config.
+		path:      "",
+		client:    client,
+		panel:     ncurses.NewPanel(root),
 		list:      list,
 		items:     nil,
-		dirFmtr:   format.NewFormatter("{%n}/"),                 // TODO: Config.
-		trackFmtr: format.NewFormatter("{-*%:%a - %t}{20%:%l}"), // TODO: Config.
+		dirFmtr:   format.NewFormatter(config.FormatBrowserDir),
+		trackFmtr: format.NewFormatter(config.FormatBrowserTrack),
 	}, nil
 }
 

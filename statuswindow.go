@@ -22,8 +22,8 @@ func NewStatusWindow(w, y, x int) (*StatusWindow, error) {
 
 	return &StatusWindow{
 		panel:       panel,
-		playingFmtr: format.NewFormatter(" {-*%:%a - %t}{*%:[%o/%l]} "),
-		pausedFmtr:  format.NewFormatter(" {-*%:%a - %t}{*%:[%o/%l]} "),
+		playingFmtr: format.NewFormatter(config.FormatStatusPlaying),
+		pausedFmtr:  format.NewFormatter(config.FormatStatusPaused),
 		stoppedFmtr: format.NewFormatter(""),
 	}, nil
 }

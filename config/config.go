@@ -10,12 +10,38 @@ import (
 	"strings"
 
 	ncurses "github.com/gbin/goncurses"
+	"github.com/vchimishuk/asp/format"
 	"github.com/vchimishuk/config"
 )
 
 var spec = &config.Spec{
 	Strict: true,
 	Properties: []*config.PropertySpec{
+		&config.PropertySpec{
+			Type:   config.TypeString,
+			Name:   "browser-dir-format",
+			Parser: parseFormat,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeString,
+			Name:   "browser-track-format",
+			Parser: parseFormat,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeString,
+			Name:   "status-paused-format",
+			Parser: parseFormat,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeString,
+			Name:   "status-playing-format",
+			Parser: parseFormat,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeString,
+			Name:   "title-format",
+			Parser: parseFormat,
+		},
 		&config.PropertySpec{
 			Type:   config.TypeString,
 			Name:   "cursor-color",
@@ -155,6 +181,14 @@ var (
 	ColorTitle          ncurses.Char
 )
 
+var (
+	FormatBrowserDir    string
+	FormatBrowserTrack  string
+	FormatStatusPaused  string
+	FormatStatusPlaying string
+	FormatTitle         string
+)
+
 type Cmd string
 
 const (
@@ -273,6 +307,10 @@ func Load() error {
 	if err != nil {
 		return err
 	}
+	err = initFormats(cfg)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -284,6 +322,31 @@ func Command(key ncurses.Key) Cmd {
 	}
 
 	return CmdNoop
+}
+
+func initFormats(cfg *config.Config) error {
+	fmts := []struct {
+		Name string
+		Var  *string
+		Def  string
+	}{
+		{"browser-dir-format", &FormatBrowserDir,
+			"{%n}/"},
+		{"browser-track-format", &FormatBrowserTrack,
+			"{-*%:%a - %t}{20%:%l}"},
+		{"status-paused-format", &FormatStatusPaused,
+			" {-*%:%a - %t}{*%:[%o/%l]} "},
+		{"status-playing-format", &FormatStatusPlaying,
+			" {-*%:%a - %t}{*%:[%o/%l]} "},
+		{"title-format", &FormatTitle,
+			" {%p}"},
+	}
+
+	for _, f := range fmts {
+		*f.Var = cfg.StringOr(f.Name, f.Def)
+	}
+
+	return nil
 }
 
 func initKeymap(cfg *config.Config) error {
@@ -339,6 +402,10 @@ func initColors(cfg *config.Config) error {
 	}
 
 	return nil
+}
+
+func parseFormat(v any) (any, error) {
+	return v, format.Validate(v.(string))
 }
 
 func parseColor(v any) (any, error) {
