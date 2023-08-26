@@ -1,9 +1,9 @@
 package main
 
-// TODO: If enterred text is wider that window we should not breaks,
-//       but let the user scroll and navigate over the text with
-//       LEFT/RIGHT/^F/^B keys.
+// TODO: Implement undo action (^/).
 // TODO: Unicode input support.
+// TODO: Add End & Home keys.
+// TODO: Add ^U key.
 
 import (
 	"strings"
@@ -13,7 +13,6 @@ import (
 )
 
 const (
-	// TODO: CamelCase constants.
 	KEY_ACK  ncurses.Key = 0x06 // ^F
 	KEY_BELL             = 0x07 // ^G
 	KEY_BS               = 0x08 // ^H
@@ -35,102 +34,120 @@ func NewTextboxWindow(w, y, x int) (*TextboxWindow, error) {
 	if err != nil {
 		return nil, err
 	}
-	// window.SetBackground(ncurses.ColorPair(1))
 	window.Keypad(true)
 
 	return &TextboxWindow{window: window}, nil
 }
 
-// TODO: Unicode support.
 func (w *TextboxWindow) Input(prompt string) string {
 	prompt += " "
 
 	ncurses.Cursor(1)
-	x := len(prompt) // Cursor position in window.
-	pos := 0         // Cursor position in string.
+	// Width of edit area.
+	width := w.maxX() - len(prompt)
+	// Cursor position in window.
+	x := 0
+	// First index of uffer visible on screen.
+	o := 0
 	buf := ""
 
 loop:
 	for {
-		maxX := w.maxX()
-		s := max(0, pos-x-len(prompt))
-		e := min(len(buf), pos+len(prompt)+maxX-x)
+		s := buf[o:min(o+width, len(buf))]
+		// Buffer offset, cursor position in buffer.
+		bo := o + x
 
 		w.window.MovePrint(0, 0, prompt)
-		if x == maxX && len(buf) > maxX-1-len(prompt) {
-			w.window.MovePrint(0, len(prompt), buf[s+1:e])
-			w.window.Print(" ")
-		} else {
-			visible := buf[s:e]
-			w.window.MovePrint(0, len(prompt), visible)
-			if len(prompt)+len(visible) < maxX {
-				w.window.Print(strings.Repeat(" ", maxX-len(prompt)-len(visible)))
-			}
-			w.window.Move(0, x)
+		w.window.Print(s)
+		if len(s) < width {
+			w.window.Print(strings.Repeat(" ", width-len(s)))
 		}
+		w.window.Move(0, len(prompt)+x)
 		w.window.Refresh()
 
 		ch := w.window.GetChar()
 
-		// TODO: Implement ^/.
 		if ch == 0 {
 			continue
 		} else if ch == ncurses.KEY_RETURN {
-			// TODO: Add ^J support.
 			break
 		} else if ch == KEY_SOH {
-			pos = 0
-			x = len(prompt)
+			o = 0
+			x = 0
 		} else if ch == KEY_STX || ch == ncurses.KEY_LEFT {
-			pos = max(0, pos-1)
-			x = max(len(prompt), x-1)
+			x--
 		} else if ch == KEY_EOT || ch == ncurses.KEY_DC {
-			if pos < len(buf) {
-				buf = buf[:pos] + buf[pos+1:]
+			if bo < len(buf) {
+				buf = buf[:bo] + buf[bo+1:]
 			}
 		} else if ch == KEY_ENQ {
-			pos = len(buf)
-			x = min(len(buf)+len(prompt), w.maxX())
+			o = max(0, len(buf)-width+1)
+			x = len(buf) - o
 		} else if ch == KEY_ACK || ch == ncurses.KEY_RIGHT {
-			pos = min(len(buf), pos+1)
-			x = min(len(buf)+len(prompt), min(w.maxX(), x+1))
+			if x < len(buf) {
+				x++
+			}
 		} else if ch == KEY_BELL {
 			buf = ""
 			break
 		} else if ch == KEY_ESC {
 			switch w.window.GetChar() {
 			case 'b':
-				i := wordBegin(buf, pos)
-				x -= pos - i
-				pos = i
+				i := wordBegin(buf, bo)
+				d := bo - i
+				if d > x {
+					o = max(0, i-1)
+					x = min(1, o)
+				} else {
+					x -= d
+				}
 			case 'd':
-				i := wordEnd(buf, pos)
-				buf = buf[:pos] + buf[i:]
+				i := wordEnd(buf, bo)
+				buf = buf[:bo] + buf[i:]
 			case 'f':
-				i := wordEnd(buf, pos)
-				x += i - pos
-				pos = i
+				i := wordEnd(buf, bo)
+				d := i - bo
+				x += d
+				if x >= width {
+					x = width - 1
+					o = i - x
+				}
 			default:
 				buf = ""
 				break loop
 			}
 		} else if ch == ncurses.KEY_BACKSPACE || ch == KEY_BS {
-			if pos > 0 {
-				buf = buf[:pos-1] + buf[pos:]
-				pos--
+			if bo > 0 {
+				buf = buf[:bo-1] + buf[bo:]
 				x--
 			}
 		} else if ch == KEY_ETB {
-			i := wordBegin(buf, pos)
-			buf = buf[:i] + buf[pos:]
-			x -= pos - i
-			pos = i
+			i := wordBegin(buf, bo)
+			buf = buf[:i] + buf[bo:]
+			d := bo - i
+			if d > x {
+				o = max(0, i-1)
+				x = min(1, o)
+			} else {
+				x -= d
+			}
 		} else if ch == KEY_VT {
-			buf = buf[:pos]
+			buf = buf[:bo]
 		} else if unicode.IsPrint(rune(ch)) {
-			buf = buf[:pos] + string(ch) + buf[pos:]
-			pos++
-			x = min(w.maxX(), x+1)
+			buf = buf[:bo] + string(ch) + buf[bo:]
+			x++
+		}
+
+		if x == 0 && o != 0 {
+			x++
+			o--
+		}
+		if x < 0 {
+			x = 0
+		}
+		if x == width || (x == width-1 && len(buf)-o > width) {
+			x--
+			o = min(o+1, len(buf)-width+1)
 		}
 	}
 
@@ -140,22 +157,6 @@ loop:
 
 	return buf
 }
-
-// // draw draws text inputted by user in such way that cursor stands at
-// // pos position which is positioned at x window coordinate.
-// func (w *TextboxWindow) draw(buf string, pos int, x int) {
-// 	maxX := w.maxX()
-// 	s := max(0, pos-x)
-// 	e := min(len(buf), pos+maxX-x)
-
-// 	if x == maxX && len(buf) > maxX-1 {
-// 		w.window.MovePrint(0, 0, buf[s+1:e])
-// 		w.window.Print(" ")
-// 	} else {
-// 		w.window.MovePrint(0, 0, buf[s:e])
-// 		w.window.Move(0, x)
-// 	}
-// }
 
 func (w *TextboxWindow) erase() {
 	w.window.MovePrint(0, 0, strings.Repeat(" ", w.maxX()))

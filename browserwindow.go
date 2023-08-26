@@ -12,7 +12,6 @@ import (
 	"github.com/vchimishuk/chubby"
 )
 
-// TODO: Move browserwindow.go in separate package?
 type Item interface {
 	// TODO: Create new type -- Path, which incapsulates
 	//       full path and dir/file flag.
@@ -156,11 +155,6 @@ func (w *BrowserWindow) Command(cmd config.Cmd) error {
 	}
 
 	return nil // TODO:
-}
-
-// TODO: Rename to Activate()
-func (w *BrowserWindow) Active() {
-	w.panel.Top()
 }
 
 func (w *BrowserWindow) SetSelected(path string) {
