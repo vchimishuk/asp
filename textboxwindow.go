@@ -2,7 +2,6 @@ package main
 
 // TODO: Implement undo action (^/).
 // TODO: Unicode input support.
-// TODO: Add ^U key.
 
 import (
 	"strings"
@@ -17,8 +16,9 @@ const (
 	KEY_BS               = 0x08 // ^H
 	KEY_ENQ              = 0x05 // ^E
 	KEY_EOT              = 0x04 // ^D
-	KEY_ESC              = 0x1B
+	KEY_ESC              = 0x1B // ^[
 	KEY_ETB              = 0x17 // ^W
+	KEY_NAK              = 0x15 // ^U
 	KEY_SOH              = 0x01 // ^A
 	KEY_STX              = 0x02 // ^B
 	KEY_VT               = 0x0B // ^K
@@ -130,6 +130,10 @@ loop:
 			} else {
 				x -= d
 			}
+		} else if ch == KEY_NAK {
+			buf = buf[bo:]
+			x = 0
+			o = 0
 		} else if ch == KEY_VT {
 			buf = buf[:bo]
 		} else if unicode.IsPrint(rune(ch)) {
