@@ -2,7 +2,6 @@ package main
 
 // TODO: Implement undo action (^/).
 // TODO: Unicode input support.
-// TODO: Add End & Home keys.
 // TODO: Add ^U key.
 
 import (
@@ -71,7 +70,7 @@ loop:
 			continue
 		} else if ch == ncurses.KEY_RETURN {
 			break
-		} else if ch == KEY_SOH {
+		} else if ch == KEY_SOH || ch == ncurses.KEY_HOME {
 			o = 0
 			x = 0
 		} else if ch == KEY_STX || ch == ncurses.KEY_LEFT {
@@ -80,7 +79,7 @@ loop:
 			if bo < len(buf) {
 				buf = buf[:bo] + buf[bo+1:]
 			}
-		} else if ch == KEY_ENQ {
+		} else if ch == KEY_ENQ || ch == ncurses.KEY_END {
 			o = max(0, len(buf)-width+1)
 			x = len(buf) - o
 		} else if ch == KEY_ACK || ch == ncurses.KEY_RIGHT {
