@@ -16,28 +16,25 @@ type ListItem interface {
 type ListWindow struct {
 	window   *ncurses.Window
 	items    []ListItem
-	input    func(string) string
 	selected string
 	// First visible item index.
 	offset int
 	// Cursor index. Cursor is an selected row which is
 	// manipulated by user with keyboard.
-	cursor    int
-	searchStr string
+	cursor     int
+	searchText string
 }
 
-func NewListWindow(parent *ncurses.Window, input func(string) string) (*ListWindow, error) {
+func NewListWindow(parent *ncurses.Window) (*ListWindow, error) {
 	h, w := parent.MaxYX()
 	window := parent.Sub(h-1, w, 1, 0)
 
 	return &ListWindow{
-		window:    window,
-		input:     input,
-		items:     nil,
-		offset:    -1,
-		selected:  "",
-		cursor:    -1,
-		searchStr: "",
+		window:   window,
+		items:    nil,
+		offset:   -1,
+		selected: "",
+		cursor:   -1,
 	}, nil
 }
 
@@ -55,12 +52,6 @@ func (w *ListWindow) Command(cmd config.Cmd) {
 		w.PageUp()
 	case config.CmdPrev:
 		w.Prev()
-	case config.CmdSearch:
-		w.search()
-	case config.CmdSearchNext:
-		w.searchNext()
-	case config.CmdSearchPrev:
-		w.searchPrev()
 	}
 }
 
@@ -88,10 +79,8 @@ func (w *ListWindow) Selected() string {
 }
 
 func (w *ListWindow) SetSelected(s string) {
-	old := w.selected
-	w.selected = s
-
-	if old != s {
+	if w.selected != s {
+		w.selected = s
 		w.refresh()
 	}
 }
@@ -214,57 +203,58 @@ func (w *ListWindow) End() {
 // 	}
 // }
 
-func (w *ListWindow) search() {
-	s := strings.ToLower(strings.TrimSpace(w.input("Search:")))
-
-	if s != "" {
-		w.searchStr = s
-		w.searchNext()
+// TODO: Search starting from the current position not the first item.
+func (w *ListWindow) Search(text string) {
+	if text != "" {
+		w.searchText = strings.ToLower(text)
+		w.SearchNext()
 	}
 }
 
-func (w *ListWindow) searchNext() {
-	if w.searchStr == "" {
+func (w *ListWindow) SearchNext() {
+	if w.searchText == "" {
 		return
 	}
 
 	_, width := w.window.MaxYX()
 	for i := w.cursor + 1; i < len(w.items); i++ {
 		s := strings.ToLower(w.items[i].Format(width))
-		if strings.Contains(s, w.searchStr) {
+		if strings.Contains(s, w.searchText) {
 			w.SetCursor(i)
 			return
 		}
 	}
 	for i := 0; i < w.cursor; i++ {
 		s := strings.ToLower(w.items[i].Format(width))
-		if strings.Contains(s, w.searchStr) {
+		if strings.Contains(s, w.searchText) {
 			w.SetCursor(i)
 			return
 		}
 	}
+	w.refresh()
 }
 
-func (w *ListWindow) searchPrev() {
-	if w.searchStr == "" {
+func (w *ListWindow) SearchPrev() {
+	if w.searchText == "" {
 		return
 	}
 
 	_, width := w.window.MaxYX()
 	for i := w.cursor - 1; i >= 0; i-- {
 		s := strings.ToLower(w.items[i].Format(width))
-		if strings.Contains(s, w.searchStr) {
+		if strings.Contains(s, w.searchText) {
 			w.SetCursor(i)
 			return
 		}
 	}
 	for i := len(w.items) - 1; i > w.cursor; i-- {
 		s := strings.ToLower(w.items[i].Format(width))
-		if strings.Contains(s, w.searchStr) {
+		if strings.Contains(s, w.searchText) {
 			w.SetCursor(i)
 			return
 		}
 	}
+	w.refresh()
 }
 
 func (w *ListWindow) height() int {

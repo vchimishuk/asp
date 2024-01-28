@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	gosync "sync"
+	"sync"
 	"time"
 
 	ncurses "github.com/gbin/goncurses"
@@ -20,12 +20,16 @@ import (
 	ctime "github.com/vchimishuk/chubby/time"
 )
 
-var stdScr *ncurses.Window
-var titleWnd *TitleWindow
-var statusWnd *StatusWindow
-var cmdWnd *CommandWindow
-var browserWnd *BrowserWindow
-var ncursesMu gosync.Mutex
+var NcursesMu sync.Mutex
+
+var (
+	rootWnd    *ncurses.Window
+	titleWnd   *TitleWindow
+	statusWnd  *StatusWindow
+	notifWnd   *NotifWindow
+	browserWnd *BrowserWindow
+	cmdWnd     *CommandWindow
+)
 
 func main() {
 	var err error
@@ -80,19 +84,19 @@ func main() {
 	// defer stopNoticeLoop.Signal()
 
 	for {
-		ncursesMu.Lock()
+		NcursesMu.Lock()
 		titleWnd.Update(map[string]string{
 			"p": browserWnd.Path(),
 		})
-		ncursesMu.Unlock()
+		NcursesMu.Unlock()
 
-		ch := stdScr.GetChar()
+		ch := rootWnd.GetChar()
 		key := ncurses.Key(ch)
 		cmd := config.Command(key)
 
-		ncursesMu.Lock()
+		NcursesMu.Lock()
 		err := browserWnd.Command(cmd)
-		ncursesMu.Unlock()
+		NcursesMu.Unlock()
 		if err != nil {
 			// TODO: Display it in status
 		}
@@ -100,6 +104,19 @@ func main() {
 		case config.CmdPause:
 			// TODO: Error handling.
 			client.Pause()
+		case config.CmdSearch:
+			text := cmdWnd.Input("Search:")
+			NcursesMu.Lock()
+			browserWnd.Search(text)
+			NcursesMu.Unlock()
+		case config.CmdSearchNext:
+			NcursesMu.Lock()
+			browserWnd.SearchNext()
+			NcursesMu.Unlock()
+		case config.CmdSearchPrev:
+			NcursesMu.Lock()
+			browserWnd.SearchPrev()
+			NcursesMu.Unlock()
 		case config.CmdStop:
 			// TODO: Error handling.
 			client.Stop()
@@ -112,11 +129,11 @@ func main() {
 
 func initNcurses() error {
 	var err error
-	stdScr, err = ncurses.Init()
+	rootWnd, err = ncurses.Init()
 	if err != nil {
 		return err
 	}
-	if err := stdScr.Keypad(true); err != nil {
+	if err := rootWnd.Keypad(true); err != nil {
 		return err
 	}
 	if err := ncurses.StartColor(); err != nil {
@@ -126,8 +143,10 @@ func initNcurses() error {
 	ncurses.Echo(false)
 	ncurses.CBreak(true)
 	ncurses.Cursor(0)
-	// nonl()
-	// raw()
+	// TODO: nonl()
+	//       tell curses not to do NL->CR/NL on output
+	// TODO: raw()
+	//       Ctrl-C generates keycode 0x03 instead of SIGINT
 
 	return nil
 }
@@ -138,33 +157,28 @@ func destroyNcurses() {
 
 func initUI(client *chubby.Chubby) error {
 	var err error
-	h, w := stdScr.MaxYX()
+	h, w := rootWnd.MaxYX()
 	// Top panel window.
 	titleWnd, err = NewTitleWindow(w, 0, 0)
 	if err != nil {
 		return err
 	}
-
-	// Bottom panel window -- window above command one.
+	// Browser window to browse VFS.
+	browserWnd, err = NewBrowserWindow(client, h-2, w, 1, 0)
+	if err != nil {
+		return err
+	}
+	// Current paying status window.
 	statusWnd, err = NewStatusWindow(w, h-2, 0)
 	if err != nil {
 		return err
 	}
-
-	// The lowest command window.
+	// Command (e.g. search prompt) window.
 	cmdWnd, err = NewCommandWindow(w, h-1, 0)
 	if err != nil {
 		return err
 	}
-
-	// Browser window to browse VFS.
-	browserWnd, err = NewBrowserWindow(client, cmdWnd.Input,
-		h-2, w, 1, 0)
-	if err != nil {
-		return err
-	}
-
-	ncurses.UpdatePanels()
+	// ncurses.UpdatePanels()
 	ncurses.Update()
 
 	return nil
@@ -206,11 +220,13 @@ func handleEvents(client *chubby.Chubby) {
 			// "q": strconv.Itoa(se.PlistPos),
 		}
 
-		ncursesMu.Lock()
+		NcursesMu.Lock()
 		browserWnd.SetSelected(data["p"])
 		// TODO: Set selected for playlist window.
 		statusWnd.Update(state, data)
-		ncursesMu.Unlock()
+		NcursesMu.Unlock()
+		// Call to restore cursor on command window in case it is active.
+		cmdWnd.Refresh()
 
 		if state == chubby.StatePlaying && ticker == nil {
 			ticker = time.NewTicker(time.Millisecond * 900)

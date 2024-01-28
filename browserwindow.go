@@ -107,7 +107,7 @@ type BrowserWindow struct {
 	trackFmtr format.Formatter
 }
 
-func NewBrowserWindow(client *chubby.Chubby, input func(string) string,
+func NewBrowserWindow(client *chubby.Chubby,
 	h, w, y, x int) (*BrowserWindow, error) {
 
 	root, err := ncurses.NewWindow(h, w, y, x)
@@ -118,7 +118,7 @@ func NewBrowserWindow(client *chubby.Chubby, input func(string) string,
 	// if err != nil {
 	// 	return nil, err
 	// }
-	list, err := NewListWindow(root, input)
+	list, err := NewListWindow(root)
 	if err != nil {
 		return nil, err
 	}
@@ -218,6 +218,18 @@ func (w *BrowserWindow) SetPath(p string) {
 		w.list.SetCursor(parent)
 	}
 	w.path = p
+}
+
+func (w *BrowserWindow) Search(text string) {
+	w.list.Search(text)
+}
+
+func (w *BrowserWindow) SearchNext() {
+	w.list.SearchNext()
+}
+
+func (w *BrowserWindow) SearchPrev() {
+	w.list.SearchPrev()
 }
 
 func (w *BrowserWindow) apply(item Item) { // TODO: error?

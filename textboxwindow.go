@@ -25,7 +25,9 @@ const (
 )
 
 type TextboxWindow struct {
-	window *ncurses.Window
+	window  *ncurses.Window
+	cursorY int
+	cursorX int
 }
 
 func NewTextboxWindow(w, y, x int) (*TextboxWindow, error) {
@@ -36,6 +38,16 @@ func NewTextboxWindow(w, y, x int) (*TextboxWindow, error) {
 	window.Keypad(true)
 
 	return &TextboxWindow{window: window}, nil
+}
+
+func (w *TextboxWindow) Refresh() {
+	NcursesMu.Lock()
+	defer NcursesMu.Unlock()
+	// Only if we are active.
+	if w.cursorY != 0 || w.cursorX != 0 {
+		w.window.Move(w.cursorY, w.cursorX)
+		w.window.Refresh()
+	}
 }
 
 func (w *TextboxWindow) Input(prompt string) string {
@@ -56,13 +68,16 @@ loop:
 		// Buffer offset, cursor position in buffer.
 		bo := o + x
 
+		NcursesMu.Lock()
 		w.window.MovePrint(0, 0, prompt)
 		w.window.Print(s)
 		if len(s) < width {
 			w.window.Print(strings.Repeat(" ", width-len(s)))
 		}
 		w.window.Move(0, len(prompt)+x)
+		w.cursorY, w.cursorX = w.window.CursorYX()
 		w.window.Refresh()
+		NcursesMu.Unlock()
 
 		ch := w.window.GetChar()
 
@@ -154,9 +169,13 @@ loop:
 		}
 	}
 
+	NcursesMu.Lock()
 	ncurses.Cursor(0)
 	w.erase()
 	w.window.Refresh()
+	w.cursorY = 0
+	w.cursorX = 0
+	NcursesMu.Unlock()
 
 	return buf
 }
