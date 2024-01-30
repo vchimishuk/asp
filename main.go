@@ -178,7 +178,7 @@ func initUI(client *chubby.Chubby) error {
 	if err != nil {
 		return err
 	}
-	// ncurses.UpdatePanels()
+	ncurses.UpdatePanels()
 	ncurses.Update()
 
 	return nil
