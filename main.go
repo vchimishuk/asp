@@ -23,12 +23,13 @@ import (
 var NcursesMu sync.Mutex
 
 var (
-	rootWnd    *ncurses.Window
-	titleWnd   *TitleWindow
-	statusWnd  *StatusWindow
-	notifWnd   *NotifWindow
-	browserWnd *BrowserWindow
-	cmdWnd     *CommandWindow
+	rootWnd        *ncurses.Window
+	titleWnd       *TitleWindow
+	statusWnd      *StatusWindow
+	browserWnd     *BrowserWindow
+	cmdWnd         *CommandWindow
+	msgWnd         *MessageWindow
+	msgWndHideTime time.Time
 )
 
 func main() {
@@ -105,6 +106,8 @@ func main() {
 			// TODO: Error handling.
 			client.Pause()
 		case config.CmdSearch:
+			// Hide message window first in case it is active.
+			hideMessage(true)
 			text := cmdWnd.Input("Search:")
 			NcursesMu.Lock()
 			browserWnd.Search(text)
@@ -178,10 +181,45 @@ func initUI(client *chubby.Chubby) error {
 	if err != nil {
 		return err
 	}
+	// Message window to display errors and other messages.
+	// Command and Messgage windows share the same spot. Only one
+	// window can be visible at time.
+	msgWnd, err = NewMessageWindow(w, h-1, 0)
+	if err != nil {
+		return err
+	}
 	ncurses.UpdatePanels()
 	ncurses.Update()
 
 	return nil
+}
+
+func showMessage(format string, args ...any) {
+	NcursesMu.Lock()
+	defer NcursesMu.Unlock()
+	msgWnd.Update(format, args...)
+
+	delay := time.Second * 3
+	msgWndHideTime = time.Now().Add(delay)
+
+	go func() {
+		time.Sleep(delay)
+		hideMessage(false)
+	}()
+}
+
+func hideMessage(force bool) {
+	NcursesMu.Lock()
+	defer NcursesMu.Unlock()
+
+	if msgWndHideTime.Unix() == 0 {
+		return
+	}
+	if force || msgWndHideTime.Before(time.Now()) {
+		msgWnd.Clear()
+		ncurses.Update()
+		msgWndHideTime = time.UnixMilli(0)
+	}
 }
 
 func handleEvents(client *chubby.Chubby) {

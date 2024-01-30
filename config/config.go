@@ -64,6 +64,11 @@ var spec = &config.Spec{
 		},
 		&config.PropertySpec{
 			Type:   config.TypeString,
+			Name:   "message-color",
+			Parser: parseColor,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeString,
 			Name:   "normal-color",
 			Parser: parseColor,
 		},
@@ -176,6 +181,7 @@ var (
 	ColorCursorSelected ncurses.Char
 	ColorList           ncurses.Char
 	ColorListSelected   ncurses.Char
+	ColorMessage        ncurses.Char
 	ColorNormal         ncurses.Char
 	ColorStatus         ncurses.Char
 	ColorTitle          ncurses.Char
@@ -335,11 +341,11 @@ func initFormats(cfg *config.Config) error {
 		{"browser-track-format", &FormatBrowserTrack,
 			"{-*%:%a - %t}{20%:%l}"},
 		{"status-paused-format", &FormatStatusPaused,
-			" {-*%:%a - %t}{*%:[%o/%l]} "},
+			"{-*%:%a - %t}{*%:[%o/%l]}"},
 		{"status-playing-format", &FormatStatusPlaying,
-			" {-*%:%a - %t}{*%:[%o/%l]} "},
+			"{-*%:%a - %t}{*%:[%o/%l]}"},
 		{"title-format", &FormatTitle,
-			" {%p}"},
+			"{%p}"},
 	}
 
 	for _, f := range fmts {
@@ -379,13 +385,16 @@ func initColors(cfg *config.Config) error {
 		{4, &ColorListSelected, "list-selected-color",
 			[]int16{colorNames["red"],
 				colorNames["black"]}},
-		{5, &ColorNormal, "normal-color",
+		{5, &ColorMessage, "message-color",
+			[]int16{colorNames["red"],
+				colorNames["black"]}},
+		{6, &ColorNormal, "normal-color",
 			[]int16{colorNames["white"],
 				colorNames["black"]}},
-		{6, &ColorStatus, "status-color",
+		{7, &ColorStatus, "status-color",
 			[]int16{colorNames["black"],
 				colorNames["blue"]}},
-		{7, &ColorTitle, "title-color",
+		{8, &ColorTitle, "title-color",
 			[]int16{colorNames["black"],
 				colorNames["blue"]}},
 	}

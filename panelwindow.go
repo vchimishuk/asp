@@ -30,6 +30,11 @@ func (w *PanelWindow) SetText(text string) {
 	w.refresh()
 }
 
+func (w *PanelWindow) Clear() {
+	w.window.Erase()
+	w.window.Refresh()
+}
+
 func (w *PanelWindow) refresh() {
 	w.window.MovePrint(0, 0, w.text)
 	l := utf8.RuneCountInString(w.text)
