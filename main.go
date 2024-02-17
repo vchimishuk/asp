@@ -1,10 +1,3 @@
-// TODO:
-// 1. Move title window near to status window.
-// 2. Title and status window use the same set of parameters.
-// 3. Update title and status windows every second if playing.
-// 4. Update title and status windows after command processing.
-// 5. Available config from any window (passed as a parameter).
-
 package main
 
 import (
@@ -30,12 +23,6 @@ var (
 	cmdWnd         *CommandWindow
 	msgWnd         *MessageWindow
 	msgWndHideTime time.Time
-)
-
-// TODO:
-const (
-	chubHost = "localhost"
-	chubPort = 5115
 )
 
 func main() {
@@ -152,9 +139,21 @@ inputLoop:
 	}
 }
 
-// TODO: Read host:port from config directly? Global var? Pass?
 func reconnect(client *chubby.Chubby) error {
-	err := client.Connect(chubHost, chubPort)
+	host := os.Getenv("ASP_CHUB_HOST")
+	if host == "" {
+		host = config.ChubHost
+	}
+	ports := os.Getenv("ASP_CHUB_PORT")
+	var port int
+	if ports != "" {
+		port, _ = strconv.Atoi(ports)
+	}
+	if port == 0 {
+		port = config.ChubPort
+	}
+
+	err := client.Connect(host, port)
 	if err != nil {
 		return err
 	}

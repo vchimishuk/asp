@@ -18,6 +18,14 @@ var spec = &config.Spec{
 	Strict: true,
 	Properties: []*config.PropertySpec{
 		&config.PropertySpec{
+			Type: config.TypeString,
+			Name: "chub-host",
+		},
+		&config.PropertySpec{
+			Type: config.TypeInt,
+			Name: "chub-port",
+		},
+		&config.PropertySpec{
 			Type:   config.TypeString,
 			Name:   "browser-dir-format",
 			Parser: parseFormat,
@@ -177,6 +185,11 @@ var colorNames = map[string]int16{
 }
 
 var (
+	ChubHost string
+	ChubPort int
+)
+
+var (
 	ColorCursor         ncurses.Char
 	ColorCursorSelected ncurses.Char
 	ColorList           ncurses.Char
@@ -304,6 +317,9 @@ func Load() error {
 		}
 
 	}
+
+	ChubHost = cfg.StringOr("chub-host", "localhost")
+	ChubPort = cfg.IntOr("chub-port", 5115)
 
 	err = initColors(cfg)
 	if err != nil {
