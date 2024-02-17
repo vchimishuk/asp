@@ -32,6 +32,12 @@ var (
 	msgWndHideTime time.Time
 )
 
+// TODO:
+const (
+	chubHost = "localhost"
+	chubPort = 5115
+)
+
 func main() {
 	var err error
 
@@ -55,11 +61,10 @@ func main() {
 	}
 
 	client := &chubby.Chubby{}
-	// TODO: Config.
-	if err := client.Connect("localhost", 5115); err != nil {
+	if err := reconnect(client); err != nil {
+		// TODO:
 		return
 	}
-	defer client.Close()
 
 	if err := initUI(client); err != nil {
 		// TODO: die("failed to initalize UI: %s", err)
@@ -70,20 +75,13 @@ func main() {
 	if err != nil {
 		p = "/"
 	}
-	browserWnd.SetPath(p)
-	defer func() {
-		err := config.SavePath(browserWnd.Path())
-		if err != nil {
-			fmt.Fprintf(os.Stderr,
-				"failed to save current path: %w", err)
-		}
-	}()
+	err = browserWnd.SetPath(p)
+	if err != nil {
+		// TODO: Print error message.
+		return
+	}
 
-	// Listen for server notifications.
-	// stopNoticeLoop := sync.NewCond(1)
-	go handleEvents(client)
-	// defer stopNoticeLoop.Signal()
-
+inputLoop:
 	for {
 		NcursesMu.Lock()
 		titleWnd.Update(map[string]string{
@@ -91,43 +89,79 @@ func main() {
 		})
 		NcursesMu.Unlock()
 
+		var err error
 		ch := rootWnd.GetChar()
-		key := ncurses.Key(ch)
-		cmd := config.Command(key)
+		if ch != 0 {
+			key := ncurses.Key(ch)
+			cmd := config.Command(key)
 
-		NcursesMu.Lock()
-		err := browserWnd.Command(cmd)
-		NcursesMu.Unlock()
-		if err != nil {
-			// TODO: Display it in status
+			switch cmd {
+			case config.CmdPause:
+				err = client.Pause()
+			case config.CmdSearch:
+				// Hide message window first in case it is active.
+				hideMessage(true)
+				text := cmdWnd.Input("Search:")
+				NcursesMu.Lock()
+				browserWnd.Search(text)
+				NcursesMu.Unlock()
+			case config.CmdSearchNext:
+				NcursesMu.Lock()
+				browserWnd.SearchNext()
+				NcursesMu.Unlock()
+			case config.CmdSearchPrev:
+				NcursesMu.Lock()
+				browserWnd.SearchPrev()
+				NcursesMu.Unlock()
+			case config.CmdStop:
+				err = client.Stop()
+			case config.CmdQuit:
+				break inputLoop
+			default:
+				NcursesMu.Lock()
+				err = browserWnd.Command(cmd)
+				NcursesMu.Unlock()
+			}
 		}
-		switch cmd {
-		case config.CmdPause:
-			// TODO: Error handling.
-			client.Pause()
-		case config.CmdSearch:
-			// Hide message window first in case it is active.
-			hideMessage(true)
-			text := cmdWnd.Input("Search:")
-			NcursesMu.Lock()
-			browserWnd.Search(text)
-			NcursesMu.Unlock()
-		case config.CmdSearchNext:
-			NcursesMu.Lock()
-			browserWnd.SearchNext()
-			NcursesMu.Unlock()
-		case config.CmdSearchPrev:
-			NcursesMu.Lock()
-			browserWnd.SearchPrev()
-			NcursesMu.Unlock()
-		case config.CmdStop:
-			// TODO: Error handling.
-			client.Stop()
-		case config.CmdQuit:
-			// TODO: Close client.
-			return
+		if err != nil {
+			if chubby.IsServerError(err) {
+				showMessage("server error received")
+			} else {
+				// Network related error. Close connection,
+				// connection attempt will be performed lower.
+				client.Close()
+			}
+		}
+		if !client.Connected() {
+			err := reconnect(client)
+			if err != nil {
+				showMessage("server connection error")
+			} else {
+				hideMessage(true)
+			}
 		}
 	}
+
+	client.Close()
+
+	err = config.SavePath(browserWnd.Path())
+	if err != nil {
+		// TODO:
+		fmt.Fprintf(os.Stderr,
+			"failed to save current path: %w", err)
+	}
+}
+
+// TODO: Read host:port from config directly? Global var? Pass?
+func reconnect(client *chubby.Chubby) error {
+	err := client.Connect(chubHost, chubPort)
+	if err != nil {
+		return err
+	}
+
+	go handleEvents(client)
+
+	return nil
 }
 
 func initNcurses() error {
@@ -142,6 +176,7 @@ func initNcurses() error {
 	if err := ncurses.StartColor(); err != nil {
 		return err
 	}
+	rootWnd.Timeout(1000)
 
 	ncurses.Echo(false)
 	ncurses.CBreak(true)
@@ -202,6 +237,7 @@ func showMessage(format string, args ...any) {
 	delay := time.Second * 3
 	msgWndHideTime = time.Now().Add(delay)
 
+	// TODO: Prevent live goroutines growth.
 	go func() {
 		time.Sleep(delay)
 		hideMessage(false)
@@ -243,6 +279,7 @@ func handleEvents(client *chubby.Chubby) {
 	track = st.Track
 	started = time.Now().Unix() - int64(st.TrackPos)
 
+loop:
 	for {
 		data := make(map[string]string)
 		if track != nil {
@@ -281,7 +318,7 @@ func handleEvents(client *chubby.Chubby) {
 		select {
 		case e, ok := <-events:
 			if !ok {
-				break
+				break loop
 			}
 			if se, ok := e.(*chubby.StatusEvent); ok {
 				state = se.State

@@ -165,11 +165,10 @@ func (w *BrowserWindow) Path() string {
 	return w.path
 }
 
-func (w *BrowserWindow) SetPath(p string) {
+func (w *BrowserWindow) SetPath(p string) error {
 	entries, err := w.client.List(p)
 	if err != nil {
-		// TODO: Print error in status and exit from the function.
-		panic(err)
+		return err
 	}
 	w.items = entries
 
@@ -218,6 +217,8 @@ func (w *BrowserWindow) SetPath(p string) {
 		w.list.SetCursor(parent)
 	}
 	w.path = p
+
+	return nil
 }
 
 func (w *BrowserWindow) Search(text string) {
