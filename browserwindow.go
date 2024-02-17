@@ -135,26 +135,28 @@ func NewBrowserWindow(client *chubby.Chubby,
 }
 
 func (w *BrowserWindow) Command(cmd config.Cmd) error {
+	var err error
+
 	switch cmd {
 	case config.CmdApply:
 		i := w.list.Cursor()
 		if i != nil {
-			w.apply(i.(Item))
+			err = w.apply(i.(Item))
 		}
 	case config.CmdPlay:
 		i := w.list.Cursor()
 		if i != nil {
-			w.play(i.(Item))
+			err = w.play(i.(Item))
 		}
 	case config.CmdBack:
-		w.back()
+		err = w.back()
 	case config.CmdSelected:
 		w.selected()
 	default:
 		w.list.Command(cmd)
 	}
 
-	return nil // TODO:
+	return err
 }
 
 func (w *BrowserWindow) SetSelected(path string) {
@@ -233,15 +235,11 @@ func (w *BrowserWindow) SearchPrev() {
 	w.list.SearchPrev()
 }
 
-func (w *BrowserWindow) apply(item Item) { // TODO: error?
+func (w *BrowserWindow) apply(item Item) error {
 	if item.IsDir() {
-		w.SetPath(item.Path())
+		return w.SetPath(item.Path())
 	} else {
-		err := w.play(item)
-		if err != nil {
-			// TODO:
-			panic(err)
-		}
+		return w.play(item)
 	}
 }
 
@@ -249,8 +247,8 @@ func (w *BrowserWindow) play(item Item) error {
 	return w.client.Play(item.Path())
 }
 
-func (w *BrowserWindow) back() { // TODO: error?
-	w.SetPath(filepath.Dir(w.path))
+func (w *BrowserWindow) back() error {
+	return w.SetPath(filepath.Dir(w.path))
 }
 
 func (w *BrowserWindow) selected() {

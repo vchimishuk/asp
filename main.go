@@ -26,36 +26,29 @@ var (
 )
 
 func main() {
-	var err error
-
-	// Display error on exit if any.
-	defer func() {
-		if err != nil {
-			// TODO: Display error.
-			fmt.Printf("asp: %s\n", err)
-		}
-	}()
-
-	if err = initNcurses(); err != nil {
-		// TODO: die("failed to initalize ncurses: %s", err)
-		return
+	if err := initNcurses(); err != nil {
+		printError("failed to initalize ncurses: %s", err)
+		os.Exit(1)
 	}
 	defer destroyNcurses()
 
 	if err := config.Load(); err != nil {
-		// TODO: call die()
-		panic(fmt.Sprintf("error: failed to load config: %s", err))
+		printError("failed to load configuration file: %s", err)
+		os.Exit(1)
 	}
 
+	var eventsDone <-chan any
+	var err error
 	client := &chubby.Chubby{}
-	if err := reconnect(client); err != nil {
-		// TODO:
-		return
+	eventsDone, err = reconnect(client)
+	if err != nil {
+		printError("server connection error: %s")
+		os.Exit(1)
 	}
 
 	if err := initUI(client); err != nil {
-		// TODO: die("failed to initalize UI: %s", err)
-		return
+		printError("failed to initalize UI: %s", err)
+		os.Exit(1)
 	}
 
 	p, err := config.LoadPath()
@@ -64,8 +57,8 @@ func main() {
 	}
 	err = browserWnd.SetPath(p)
 	if err != nil {
-		// TODO: Print error message.
-		return
+		printError("server command failed: %s", err)
+		os.Exit(1)
 	}
 
 inputLoop:
@@ -120,7 +113,7 @@ inputLoop:
 			}
 		}
 		if !client.Connected() {
-			err := reconnect(client)
+			eventsDone, err = reconnect(client)
 			if err != nil {
 				showMessage("server connection error")
 			} else {
@@ -133,13 +126,14 @@ inputLoop:
 
 	err = config.SavePath(browserWnd.Path())
 	if err != nil {
-		// TODO:
-		fmt.Fprintf(os.Stderr,
-			"failed to save current path: %w", err)
+		printError("failed to save current path: %s", err)
+		os.Exit(1)
 	}
+
+	wait(eventsDone, time.Second)
 }
 
-func reconnect(client *chubby.Chubby) error {
+func reconnect(client *chubby.Chubby) (<-chan any, error) {
 	host := os.Getenv("ASP_CHUB_HOST")
 	if host == "" {
 		host = config.ChubHost
@@ -155,12 +149,13 @@ func reconnect(client *chubby.Chubby) error {
 
 	err := client.Connect(host, port)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	go handleEvents(client)
+	done := make(chan any)
+	go handleEvents(client, done)
 
-	return nil
+	return done, nil
 }
 
 func initNcurses() error {
@@ -257,7 +252,7 @@ func hideMessage(force bool) {
 	}
 }
 
-func handleEvents(client *chubby.Chubby) {
+func handleEvents(client *chubby.Chubby, done chan<- any) {
 	var state chubby.State = chubby.StateStopped
 	var track *chubby.Track
 	var started int64
@@ -265,14 +260,12 @@ func handleEvents(client *chubby.Chubby) {
 
 	events, err := client.Events(true)
 	if err != nil {
-		// TODO: Handle error -- retry in loop.
-		panic(err)
+		return
 	}
 
 	st, err := client.Status()
 	if err != nil {
-		// TODO:
-		panic(err)
+		return
 	}
 	state = st.State
 	track = st.Track
@@ -332,4 +325,18 @@ loop:
 	if ticker != nil {
 		ticker.Stop()
 	}
+
+	done <- struct{}{}
+}
+
+func wait(ch <-chan any, delay time.Duration) {
+	t := time.NewTicker(delay)
+	select {
+	case <-ch:
+	case <-t.C:
+	}
+}
+
+func printError(format string, args ...any) {
+	fmt.Fprintf(os.Stderr, "asp: %s\n", fmt.Sprintf(format, args...))
 }
