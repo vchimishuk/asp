@@ -23,6 +23,7 @@ var (
 	cmdWnd         *CommandWindow
 	msgWnd         *MessageWindow
 	msgWndHideTime time.Time
+	msgWndShowCond *sync.Cond
 )
 
 func main() {
@@ -220,6 +221,8 @@ func initUI(client *chubby.Chubby) error {
 	ncurses.UpdatePanels()
 	ncurses.Update()
 
+	go delayedMessageHider()
+
 	return nil
 }
 
@@ -230,25 +233,39 @@ func showMessage(format string, args ...any) {
 
 	delay := time.Second * 3
 	msgWndHideTime = time.Now().Add(delay)
-
-	// TODO: Prevent live goroutines growth.
-	go func() {
-		time.Sleep(delay)
-		hideMessage(false)
-	}()
+	msgWndShowCond.Signal()
 }
 
 func hideMessage(force bool) {
 	NcursesMu.Lock()
 	defer NcursesMu.Unlock()
 
-	if msgWndHideTime.Unix() == 0 {
-		return
+	if msgWndHideTime.Unix() != 0 &&
+		(force || msgWndHideTime.Before(time.Now())) {
+
+		doHideMessage()
 	}
-	if force || msgWndHideTime.Before(time.Now()) {
-		msgWnd.Clear()
-		ncurses.Update()
-		msgWndHideTime = time.UnixMilli(0)
+}
+
+func doHideMessage() {
+	msgWnd.Clear()
+	ncurses.Update()
+	msgWndHideTime = time.UnixMilli(0)
+}
+
+func delayedMessageHider() {
+	msgWndShowCond = sync.NewCond(&NcursesMu)
+
+	for {
+		NcursesMu.Lock()
+		if msgWndHideTime.Before(time.Now()) {
+			doHideMessage()
+			msgWndShowCond.Wait()
+			NcursesMu.Unlock()
+		} else {
+			NcursesMu.Unlock()
+			time.Sleep(time.Second)
+		}
 	}
 }
 
