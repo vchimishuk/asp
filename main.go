@@ -153,7 +153,7 @@ func reconnect(client *chubby.Chubby) (<-chan any, error) {
 		return nil, err
 	}
 
-	done := make(chan any)
+	done := make(chan any, 1)
 	go handleEvents(client, done)
 
 	return done, nil
