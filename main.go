@@ -177,8 +177,7 @@ inputLoop:
 				NcursesMu.Lock()
 				browserWnd.Search(text)
 				NcursesMu.Unlock()
-			case config.CmdSelected:
-				// TODO: Rename command to CmdActive.
+			case config.CmdShowActive:
 				err = chdir(path.Dir(activePath))
 			case config.CmdSearchNext:
 				NcursesMu.Lock()

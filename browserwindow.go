@@ -26,7 +26,7 @@ func (i *item) Format(width int) string {
 	return i.fmtr.Format(i.data, width)
 }
 
-func (i *item) IsSelected(val string) bool {
+func (i *item) IsActive(val string) bool {
 	if i.entry.IsDir() {
 		d := i.entry.Dir()
 		// TODO: Slash suffix should be done using formatter.

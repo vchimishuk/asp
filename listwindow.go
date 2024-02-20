@@ -10,15 +10,13 @@ import (
 
 type ListItem interface {
 	Format(width int) string
-	// TODO: Rename to IsActive.
-	IsSelected(val string) bool
+	IsActive(val string) bool
 }
 
 type ListWindow struct {
 	window *ncurses.Window
 	items  []ListItem
-	// TODO: Rename to active.
-	selected string
+	active string
 	// First visible item index.
 	offset int
 	// Cursor index. Cursor is an selected row which is
@@ -30,11 +28,11 @@ type ListWindow struct {
 func NewListWindow(h, w, y, x int) (*ListWindow, error) {
 	window, err := ncurses.NewWindow(h, w, y, x)
 	return &ListWindow{
-		window:   window,
-		items:    nil,
-		offset:   -1,
-		selected: "",
-		cursor:   -1,
+		window: window,
+		items:  nil,
+		offset: -1,
+		active: "",
+		cursor: -1,
 	}, err
 }
 
@@ -61,13 +59,13 @@ func (w *ListWindow) Add(items ...ListItem) {
 	w.refresh()
 }
 
-func (w *ListWindow) Selected() string {
-	return w.selected
+func (w *ListWindow) Active() string {
+	return w.active
 }
 
 func (w *ListWindow) SetActive(s string) {
-	if w.selected != s {
-		w.selected = s
+	if w.active != s {
+		w.active = s
 		w.refresh()
 	}
 }
@@ -233,14 +231,14 @@ func (w *ListWindow) refresh() {
 			s = strings.Repeat(" ", width)
 		} else {
 			attr = config.ColorList
-			sel := w.items[ii].IsSelected(w.selected)
+			sel := w.items[ii].IsActive(w.active)
 
 			if sel || ii == w.cursor {
 
 				if sel && ii == w.cursor {
-					attr = config.ColorCursorSelected
+					attr = config.ColorCursorActive
 				} else if sel {
-					attr = config.ColorListSelected
+					attr = config.ColorListActive
 				} else { // ii == w.cursor
 					attr = config.ColorCursor
 				}

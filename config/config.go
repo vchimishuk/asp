@@ -57,7 +57,7 @@ var spec = &config.Spec{
 		},
 		&config.PropertySpec{
 			Type:   config.TypeString,
-			Name:   "cursor-selected-color",
+			Name:   "cursor-active-color",
 			Parser: parseColor,
 		},
 		&config.PropertySpec{
@@ -67,7 +67,7 @@ var spec = &config.Spec{
 		},
 		&config.PropertySpec{
 			Type:   config.TypeString,
-			Name:   "list-selected-color",
+			Name:   "list-active-color",
 			Parser: parseColor,
 		},
 		&config.PropertySpec{
@@ -157,7 +157,7 @@ var spec = &config.Spec{
 		},
 		&config.PropertySpec{
 			Type:   config.TypeStringList,
-			Name:   string(CmdSelected) + "-key",
+			Name:   string(CmdShowActive) + "-key",
 			Parser: parseKey,
 		},
 		&config.PropertySpec{
@@ -190,14 +190,14 @@ var (
 )
 
 var (
-	ColorCursor         ncurses.Char
-	ColorCursorSelected ncurses.Char
-	ColorList           ncurses.Char
-	ColorListSelected   ncurses.Char
-	ColorMessage        ncurses.Char
-	ColorNormal         ncurses.Char
-	ColorStatus         ncurses.Char
-	ColorTitle          ncurses.Char
+	ColorCursor       ncurses.Char
+	ColorCursorActive ncurses.Char
+	ColorList         ncurses.Char
+	ColorListActive   ncurses.Char
+	ColorMessage      ncurses.Char
+	ColorNormal       ncurses.Char
+	ColorStatus       ncurses.Char
+	ColorTitle        ncurses.Char
 )
 
 var (
@@ -225,7 +225,7 @@ const (
 	CmdSearch     Cmd = "search"
 	CmdSearchNext Cmd = "search-next"
 	CmdSearchPrev Cmd = "search-prev"
-	CmdSelected   Cmd = "selected"
+	CmdShowActive Cmd = "show-active"
 	CmdStop       Cmd = "stop"
 	CmdUp         Cmd = "up"
 )
@@ -281,8 +281,8 @@ var defKeymap = map[Cmd][]ncurses.Key{
 	CmdSearchPrev: []ncurses.Key{
 		ncurses.Key('N'),
 	},
-	CmdSelected: []ncurses.Key{
-		ncurses.Key('G'),
+	CmdShowActive: []ncurses.Key{
+		ncurses.Key('a'),
 	},
 	CmdStop: []ncurses.Key{
 		ncurses.Key('s'),
@@ -392,13 +392,13 @@ func initColors(cfg *config.Config) error {
 		{1, &ColorCursor, "cursor-color",
 			[]int16{colorNames["black"],
 				colorNames["cyan"]}},
-		{2, &ColorCursorSelected, "cursor-selected-color",
+		{2, &ColorCursorActive, "cursor-active-color",
 			[]int16{colorNames["red"],
 				colorNames["cyan"]}},
 		{3, &ColorList, "list-color",
 			[]int16{colorNames["white"],
 				colorNames["black"]}},
-		{4, &ColorListSelected, "list-selected-color",
+		{4, &ColorListActive, "list-active-color",
 			[]int16{colorNames["red"],
 				colorNames["black"]}},
 		{5, &ColorMessage, "message-color",
