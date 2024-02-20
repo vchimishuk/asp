@@ -40,9 +40,11 @@ func NewCommandWindow(w, y, x int) (*CommandWindow, error) {
 	return &CommandWindow{window: window}, nil
 }
 
+func (w *CommandWindow) Delete() {
+	w.window.Delete()
+}
+
 func (w *CommandWindow) Refresh() {
-	NcursesMu.Lock()
-	defer NcursesMu.Unlock()
 	// Only if we are active.
 	if w.cursorY != 0 || w.cursorX != 0 {
 		w.window.Move(w.cursorY, w.cursorX)

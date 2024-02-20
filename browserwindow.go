@@ -1,183 +1,78 @@
 package main
 
 import (
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
 
-	ncurses "github.com/gbin/goncurses"
 	"github.com/vchimishuk/asp/config"
 	"github.com/vchimishuk/asp/format"
 	"github.com/vchimishuk/chubby"
 )
 
-type Item interface {
-	// TODO: Create new type -- Path, which incapsulates
-	//       full path and dir/file flag.
-	//       Or... create this type inside shubby?
-	IsDir() bool
-	Path() string
-	Format(width int) string
-	IsSelected(val string) bool
+type item struct {
+	entry chubby.Entry
+	data  map[string]string
+	fmtr  format.Formatter
 }
 
-// TODO: Rename to parentItem.
-type ParentItem struct {
-	path string
+func newItem(entry chubby.Entry, data map[string]string,
+	fmtr format.Formatter) *item {
+
+	return &item{entry, data, fmtr}
 }
 
-func (i *ParentItem) IsDir() bool {
-	return true
-}
-
-func (i *ParentItem) Path() string {
-	return i.path
-}
-
-func (i *ParentItem) Format(width int) string {
-	if width >= 3 {
-		return "../" + strings.Repeat(" ", width-3)
-	} else {
-		return ""
-	}
-}
-
-func (i *ParentItem) IsSelected(val string) bool {
-	return false
-}
-
-func newParentItem(path string) *ParentItem {
-	return &ParentItem{path}
-}
-
-// type parentDirFormatter struct {
-// }
-
-// func (f *parentDirFormatter) Format(data map[string]string, width int) string {
-// 	if width >= 3 {
-// 		return "../" + strings.Repeat(" ", width-3)
-// 	} else {
-// 		return ""
-// 	}
-// }
-
-type TrackItem struct {
-	data map[string]string
-	fmtr format.Formatter
-	dir  bool
-	path string
-}
-
-func newTrackItem(data map[string]string, fmtr format.Formatter,
-	dir bool, path string) *TrackItem {
-
-	return &TrackItem{data, fmtr, dir, path}
-}
-
-func (i *TrackItem) IsDir() bool {
-	return i.dir
-}
-
-func (i *TrackItem) Path() string {
-	return i.path
-}
-
-func (i *TrackItem) Format(width int) string {
+func (i *item) Format(width int) string {
 	return i.fmtr.Format(i.data, width)
 }
 
-func (i *TrackItem) IsSelected(val string) bool {
-	if i.dir {
-		return strings.HasPrefix(val, i.path+"/")
+func (i *item) IsSelected(val string) bool {
+	if i.entry.IsDir() {
+		d := i.entry.Dir()
+		// TODO: Slash suffix should be done using formatter.
+		return d.Name != ".." && strings.HasPrefix(val, d.Path+"/")
 	} else {
-		return i.path == val
+		return i.entry.Track().Path == val
 	}
 }
 
 type BrowserWindow struct {
-	// Current folder path browser navigated in.
-	path   string
-	client *chubby.Chubby
-	panel  *ncurses.Panel
-	// title     *PanelWindow
+	path      string
 	list      *ListWindow
 	items     []chubby.Entry
 	dirFmtr   format.Formatter
 	trackFmtr format.Formatter
 }
 
-func NewBrowserWindow(client *chubby.Chubby,
-	h, w, y, x int) (*BrowserWindow, error) {
-
-	root, err := ncurses.NewWindow(h, w, y, x)
-	if err != nil {
-		return nil, err
-	}
-	// title, err := NewPanelWindow(root, 1, w, 0, 0)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	list, err := NewListWindow(root)
-	if err != nil {
-		return nil, err
-	}
-
+func NewBrowserWindow(h, w, y, x int) (*BrowserWindow, error) {
+	list, err := NewListWindow(h, w, y, x)
 	return &BrowserWindow{
 		path:      "",
-		client:    client,
-		panel:     ncurses.NewPanel(root),
 		list:      list,
 		items:     nil,
 		dirFmtr:   format.NewFormatter(config.FormatBrowserDir),
 		trackFmtr: format.NewFormatter(config.FormatBrowserTrack),
-	}, nil
+	}, err
 }
 
-func (w *BrowserWindow) Command(cmd config.Cmd) error {
-	var err error
-
-	switch cmd {
-	case config.CmdApply:
-		i := w.list.Cursor()
-		if i != nil {
-			err = w.apply(i.(Item))
-		}
-	case config.CmdPlay:
-		i := w.list.Cursor()
-		if i != nil {
-			err = w.play(i.(Item))
-		}
-	case config.CmdBack:
-		err = w.back()
-	case config.CmdSelected:
-		w.selected()
-	default:
-		w.list.Command(cmd)
-	}
-
-	return err
+func (w *BrowserWindow) Cursor() chubby.Entry {
+	return w.list.Cursor().(*item).entry
 }
 
-func (w *BrowserWindow) SetSelected(path string) {
-	w.list.SetSelected(path)
+func (w *BrowserWindow) SetActive(path string) {
+	w.list.SetActive(path)
 }
 
-func (w *BrowserWindow) Path() string {
-	return w.path
-}
-
-func (w *BrowserWindow) SetPath(p string) error {
-	entries, err := w.client.List(p)
-	if err != nil {
-		return err
-	}
-	w.items = entries
-
+func (w *BrowserWindow) SetDir(p string, entries []chubby.Entry) error {
 	items := make([]ListItem, 0, len(entries)+1)
-	// items = append(items, newTrackItem(nil, &parentDirFormatter{}, true,
-	// 	filepath.Dir(p)))
-	items = append(items, newParentItem(filepath.Dir(p)))
+	pd := &chubby.Dir{
+		Path: filepath.Dir(p),
+		Name: "..",
+	}
+	items = append(items, newItem(pd, map[string]string{
+		"p": pd.Path,
+		"n": "..",
+	}, w.dirFmtr))
 	parent := -1
 
 	for i, e := range entries {
@@ -204,7 +99,7 @@ func (w *BrowserWindow) SetPath(p string) error {
 			fmtr = w.trackFmtr
 			path = e.Track().Path
 		}
-		items = append(items, newTrackItem(data, fmtr, e.IsDir(), path))
+		items = append(items, newItem(e, data, fmtr))
 
 		if isParent(w.path, path) {
 			parent = i + 1 // Thre first one is "..".
@@ -213,7 +108,6 @@ func (w *BrowserWindow) SetPath(p string) error {
 
 	w.list.Clear()
 	w.list.Add(items...)
-	// w.title.SetText(p)
 
 	if parent != -1 {
 		w.list.SetCursor(parent)
@@ -235,40 +129,34 @@ func (w *BrowserWindow) SearchPrev() {
 	w.list.SearchPrev()
 }
 
-func (w *BrowserWindow) apply(item Item) error {
-	if item.IsDir() {
-		return w.SetPath(item.Path())
-	} else {
-		return w.play(item)
-	}
+func (w *BrowserWindow) Up() {
+	w.list.Up()
 }
 
-func (w *BrowserWindow) play(item Item) error {
-	return w.client.Play(item.Path())
+func (w *BrowserWindow) Down() {
+	w.list.Down()
 }
 
-func (w *BrowserWindow) back() error {
-	return w.SetPath(filepath.Dir(w.path))
+func (w *BrowserWindow) PageUp() {
+	w.list.PageUp()
 }
 
-func (w *BrowserWindow) selected() {
-	p := w.list.Selected()
-	if p == "" {
-		return
-	}
+func (w *BrowserWindow) PageDown() {
+	w.list.PageDown()
+}
 
-	w.SetPath(path.Dir(p))
-	for i, _ := range w.items {
-		it := w.items[i]
-		if it.IsDir() {
-			continue
-		}
-		if it.Track().Path == p {
-			w.list.SetCursor(i + 1)
-		}
-	}
+func (w *BrowserWindow) Home() {
+	w.list.Home()
+}
+
+func (w *BrowserWindow) End() {
+	w.list.End()
 }
 
 func isParent(path, parent string) bool {
 	return strings.HasPrefix(path, parent)
+}
+
+func (w *BrowserWindow) Delete() {
+	w.list.Delete()
 }

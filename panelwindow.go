@@ -55,3 +55,7 @@ func (w *PanelWindow) Height() int {
 
 	return y
 }
+
+func (w *PanelWindow) Delete() {
+	w.window.Delete()
+}

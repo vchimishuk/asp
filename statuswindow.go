@@ -28,6 +28,10 @@ func NewStatusWindow(w, y, x int) (*StatusWindow, error) {
 	}, nil
 }
 
+func (w *StatusWindow) Delete() {
+	w.panel.Delete()
+}
+
 func (w *StatusWindow) Update(state chubby.State, data map[string]string) {
 	var fmtr format.Formatter
 

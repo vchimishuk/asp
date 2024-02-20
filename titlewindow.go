@@ -26,3 +26,7 @@ func NewTitleWindow(w, y, x int) (*TitleWindow, error) {
 func (w *TitleWindow) Update(data map[string]string) {
 	w.panel.SetText(w.fmtr.Format(data, w.panel.Width()))
 }
+
+func (w *TitleWindow) Delete() {
+	w.panel.Delete()
+}

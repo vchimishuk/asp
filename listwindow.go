@@ -10,12 +10,14 @@ import (
 
 type ListItem interface {
 	Format(width int) string
+	// TODO: Rename to IsActive.
 	IsSelected(val string) bool
 }
 
 type ListWindow struct {
-	window   *ncurses.Window
-	items    []ListItem
+	window *ncurses.Window
+	items  []ListItem
+	// TODO: Rename to active.
 	selected string
 	// First visible item index.
 	offset int
@@ -25,34 +27,19 @@ type ListWindow struct {
 	searchText string
 }
 
-func NewListWindow(parent *ncurses.Window) (*ListWindow, error) {
-	h, w := parent.MaxYX()
-	window := parent.Sub(h-1, w, 1, 0)
-
+func NewListWindow(h, w, y, x int) (*ListWindow, error) {
+	window, err := ncurses.NewWindow(h, w, y, x)
 	return &ListWindow{
 		window:   window,
 		items:    nil,
 		offset:   -1,
 		selected: "",
 		cursor:   -1,
-	}, nil
+	}, err
 }
 
-func (w *ListWindow) Command(cmd config.Cmd) {
-	switch cmd {
-	case config.CmdEnd:
-		w.End()
-	case config.CmdHome:
-		w.Home()
-	case config.CmdNext:
-		w.Next()
-	case config.CmdPageDown:
-		w.PageDown()
-	case config.CmdPageUp:
-		w.PageUp()
-	case config.CmdPrev:
-		w.Prev()
-	}
+func (w *ListWindow) Delete() {
+	w.window.Delete()
 }
 
 func (w *ListWindow) Clear() {
@@ -78,30 +65,12 @@ func (w *ListWindow) Selected() string {
 	return w.selected
 }
 
-func (w *ListWindow) SetSelected(s string) {
+func (w *ListWindow) SetActive(s string) {
 	if w.selected != s {
 		w.selected = s
 		w.refresh()
 	}
 }
-
-// func (w *ListWindow) Selected() ListItem {
-// 	if w.selected != -1 {
-// 		return w.items[w.selected]
-// 	} else {
-// 		return nil
-// 	}
-// }
-
-// func (w *ListWindow) SetSelected(i int) error {
-// 	if i < 0 || i >= len(w.items) {
-// 		return fmt.Errorf("Can't select %d item of %d", i, len(w.items))
-// 	}
-// 	w.selected = i
-// 	w.redraw()
-
-// 	return nil
-// }
 
 func (w *ListWindow) Cursor() ListItem {
 	if w.cursor != -1 {
@@ -124,7 +93,7 @@ func (w *ListWindow) SetCursor(i int) error {
 	return nil
 }
 
-func (w *ListWindow) Next() {
+func (w *ListWindow) Down() {
 	if len(w.items) > 0 && w.cursor < len(w.items)-1 {
 		w.cursor++
 		h := w.height()
@@ -135,7 +104,7 @@ func (w *ListWindow) Next() {
 	}
 }
 
-func (w *ListWindow) Prev() {
+func (w *ListWindow) Up() {
 	if len(w.items) > 0 && w.cursor > 0 {
 		w.cursor--
 		if w.cursor < w.offset {
@@ -189,19 +158,6 @@ func (w *ListWindow) End() {
 		w.refresh()
 	}
 }
-
-// // Position returns vertical scrollbar position.
-// func (w *ListWindow) Position() int {
-// 	h := w.height()
-// 	last := len(w.items) - 1
-// 	lastVis := min(last, w.offset+h-1)
-
-// 	if lastVis < last {
-// 		return lastVis * 100 / last
-// 	} else {
-// 		return 100
-// 	}
-// }
 
 // TODO: Search starting from the current position not the first item.
 func (w *ListWindow) Search(text string) {

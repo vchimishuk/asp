@@ -3,8 +3,11 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
+	"path"
 	"strconv"
 	"sync"
+	"syscall"
 	"time"
 
 	ncurses "github.com/gbin/goncurses"
@@ -26,47 +29,95 @@ var (
 	msgWndShowCond *sync.Cond
 )
 
+var (
+	chub           *chubby.Chubby
+	eventsDone     <-chan any
+	activePath     string
+	browserPath    string
+	browserEntries []chubby.Entry
+)
+
+var (
+	chubStatus  *chubby.Status
+	chubStarted int64
+)
+
 func main() {
-	if err := initNcurses(); err != nil {
-		printError("failed to initalize ncurses: %s", err)
+	err := doMain()
+	if err != nil {
+		printErr(err)
 		os.Exit(1)
+	}
+}
+
+func doMain() error {
+	if err := initNcurses(); err != nil {
+		return fmt.Errorf("failed to initalize ncurses: %w", err)
 	}
 	defer destroyNcurses()
 
 	if err := config.Load(); err != nil {
-		printError("failed to load configuration file: %s", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to load configuration file: %w", err)
+	}
+
+	if err := initUI(); err != nil {
+		return fmt.Errorf("failed to initalize UI: %w", err)
 	}
 
 	var eventsDone <-chan any
 	var err error
-	client := &chubby.Chubby{}
-	eventsDone, err = reconnect(client)
+	chub = &chubby.Chubby{}
+	eventsDone, err = reconnect(chub)
 	if err != nil {
-		printError("server connection error: %s")
-		os.Exit(1)
+		return fmt.Errorf("server connection error: %w", err)
 	}
 
-	if err := initUI(client); err != nil {
-		printError("failed to initalize UI: %s", err)
-		os.Exit(1)
+	NcursesMu.Lock()
+	browserPath, err = config.LoadPath()
+	if browserPath == "" || err != nil {
+		browserPath = "/"
 	}
 
-	p, err := config.LoadPath()
+	browserEntries, err = chub.List(browserPath)
 	if err != nil {
-		p = "/"
+		// TODO: err: short write
+		return fmt.Errorf("server error: %w", err)
 	}
-	err = browserWnd.SetPath(p)
-	if err != nil {
-		printError("server command failed: %s", err)
-		os.Exit(1)
-	}
+	updateWindows()
+	NcursesMu.Unlock()
+
+	sigs := make(chan os.Signal)
+	signal.Notify(sigs, syscall.SIGWINCH)
+	go func() {
+		for {
+			<-sigs
+
+			// TODO: Asp fails on resize if command window is active.
+			NcursesMu.Lock()
+			destroyNcurses()
+			if err := initNcurses(); err != nil {
+				printErr(fmt.Errorf("failed to re-initalize ncurses: %w",
+					err))
+				os.Exit(1)
+
+			}
+			if err := initUI(); err != nil {
+				printErr(fmt.Errorf("failed to re-initalize UI: %w", err))
+				os.Exit(1)
+			}
+			updateWindows()
+			NcursesMu.Unlock()
+		}
+	}()
 
 inputLoop:
 	for {
 		NcursesMu.Lock()
+		// TODO: Move into updateWindows()
+		// TODO:  Title window should be updated using some global
+		//        state just like browser window is.
 		titleWnd.Update(map[string]string{
-			"p": browserWnd.Path(),
+			"p": browserPath,
 		})
 		NcursesMu.Unlock()
 
@@ -77,8 +128,48 @@ inputLoop:
 			cmd := config.Command(key)
 
 			switch cmd {
+			case config.CmdApply:
+				entry := browserWnd.Cursor()
+				if entry.IsDir() {
+					err = chdir(entry.Dir().Path)
+				} else {
+					err = chub.Play(entry.Track().Path)
+				}
+			case config.CmdBack:
+				err = chdir(path.Dir(browserPath))
+			case config.CmdEnd:
+				NcursesMu.Lock()
+				browserWnd.End()
+				NcursesMu.Unlock()
+			case config.CmdDown:
+				NcursesMu.Lock()
+				browserWnd.Down()
+				NcursesMu.Unlock()
+			case config.CmdHome:
+				NcursesMu.Lock()
+				browserWnd.Home()
+				NcursesMu.Unlock()
 			case config.CmdPause:
-				err = client.Pause()
+				NcursesMu.Lock()
+				err = chub.Pause()
+				NcursesMu.Unlock()
+			case config.CmdPlay:
+				entry := browserWnd.Cursor()
+				var p string
+				if entry.IsDir() {
+					p = entry.Dir().Path
+				} else {
+					p = entry.Track().Path
+				}
+				err = chub.Play(p)
+			case config.CmdPageDown:
+				NcursesMu.Lock()
+				browserWnd.PageDown()
+				NcursesMu.Unlock()
+			case config.CmdPageUp:
+				NcursesMu.Lock()
+				browserWnd.PageUp()
+				NcursesMu.Unlock()
 			case config.CmdSearch:
 				// Hide message window first in case it is active.
 				hideMessage(true)
@@ -86,6 +177,9 @@ inputLoop:
 				NcursesMu.Lock()
 				browserWnd.Search(text)
 				NcursesMu.Unlock()
+			case config.CmdSelected:
+				// TODO: Rename command to CmdActive.
+				err = chdir(path.Dir(activePath))
 			case config.CmdSearchNext:
 				NcursesMu.Lock()
 				browserWnd.SearchNext()
@@ -95,13 +189,13 @@ inputLoop:
 				browserWnd.SearchPrev()
 				NcursesMu.Unlock()
 			case config.CmdStop:
-				err = client.Stop()
+				err = chub.Stop()
+			case config.CmdUp:
+				NcursesMu.Lock()
+				browserWnd.Up()
+				NcursesMu.Unlock()
 			case config.CmdQuit:
 				break inputLoop
-			default:
-				NcursesMu.Lock()
-				err = browserWnd.Command(cmd)
-				NcursesMu.Unlock()
 			}
 		}
 		if err != nil {
@@ -110,11 +204,11 @@ inputLoop:
 			} else {
 				// Network related error. Close connection,
 				// connection attempt will be performed lower.
-				client.Close()
+				chub.Close()
 			}
 		}
-		if !client.Connected() {
-			eventsDone, err = reconnect(client)
+		if !chub.Connected() {
+			eventsDone, err = reconnect(chub)
 			if err != nil {
 				showMessage("server connection error")
 			} else {
@@ -123,18 +217,19 @@ inputLoop:
 		}
 	}
 
-	client.Close()
+	chub.Close()
 
-	err = config.SavePath(browserWnd.Path())
+	err = config.SavePath(browserPath)
 	if err != nil {
-		printError("failed to save current path: %s", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to save current path: %w", err)
 	}
 
 	wait(eventsDone, time.Second)
+
+	return nil
 }
 
-func reconnect(client *chubby.Chubby) (<-chan any, error) {
+func reconnect(chub *chubby.Chubby) (<-chan any, error) {
 	host := os.Getenv("ASP_CHUB_HOST")
 	if host == "" {
 		host = config.ChubHost
@@ -148,13 +243,13 @@ func reconnect(client *chubby.Chubby) (<-chan any, error) {
 		port = config.ChubPort
 	}
 
-	err := client.Connect(host, port)
+	err := chub.Connect(host, port)
 	if err != nil {
 		return nil, err
 	}
 
 	done := make(chan any, 1)
-	go handleEvents(client, done)
+	go handleEvents(chub, done)
 
 	return done, nil
 }
@@ -180,15 +275,21 @@ func initNcurses() error {
 	//       tell curses not to do NL->CR/NL on output
 	// TODO: raw()
 	//       Ctrl-C generates keycode 0x03 instead of SIGINT
+	ncurses.Update()
 
 	return nil
 }
 
 func destroyNcurses() {
+	titleWnd.Delete()
+	browserWnd.Delete()
+	statusWnd.Delete()
+	cmdWnd.Delete()
+	msgWnd.Delete()
 	ncurses.End()
 }
 
-func initUI(client *chubby.Chubby) error {
+func initUI() error {
 	var err error
 	h, w := rootWnd.MaxYX()
 	// Top panel window.
@@ -196,8 +297,9 @@ func initUI(client *chubby.Chubby) error {
 	if err != nil {
 		return err
 	}
+	rootWnd.Refresh()
 	// Browser window to browse VFS.
-	browserWnd, err = NewBrowserWindow(client, h-2, w, 1, 0)
+	browserWnd, err = NewBrowserWindow(h-3, w, 1, 0)
 	if err != nil {
 		return err
 	}
@@ -218,10 +320,69 @@ func initUI(client *chubby.Chubby) error {
 	if err != nil {
 		return err
 	}
-	ncurses.UpdatePanels()
+
 	ncurses.Update()
 
+	// TODO: Use input loop to do it.
 	go delayedMessageHider()
+
+	return nil
+}
+
+func updateWindows() {
+	browserWnd.SetDir(browserPath, browserEntries)
+	updateStatus()
+	// TODO: Update message window.
+}
+
+func updateStatus() {
+	if chubStatus == nil {
+		statusWnd.Update(chubby.StateStopped, nil)
+		return
+	}
+
+	data := make(map[string]string)
+	track := chubStatus.Track
+	if track != nil {
+		data["p"] = track.Path
+		data["a"] = track.Artist
+		data["b"] = track.Album
+		data["t"] = track.Title
+		data["n"] = strconv.Itoa(track.Number)
+		data["l"] = track.Length.String()
+		data["o"] = ctime.Time(time.Now().Unix() - chubStarted).String()
+		// "r": strconv.Itoa(plist.Length),
+		// "q": strconv.Itoa(se.PlistPos),
+	}
+
+	if track == nil {
+		activePath = ""
+		browserWnd.SetActive(activePath)
+	} else if activePath != track.Path {
+		activePath = track.Path
+		browserWnd.SetActive(activePath)
+	}
+
+	// // TODO: Title window shoul accept the same params as status window.
+	// titleWnd.Update(map[string]string{
+	// 	"p": activePath,
+	// })
+	statusWnd.Update(chubStatus.State, data)
+	// Call to restore cursor on command window in case it is active.
+	cmdWnd.Refresh()
+}
+
+func chdir(p string) error {
+	es, err := chub.List(p)
+	if err != nil {
+		return err
+	}
+
+	NcursesMu.Lock()
+	browserPath = p
+	browserEntries = es
+	updateWindows()
+	NcursesMu.Unlock()
 
 	return nil
 }
@@ -248,9 +409,10 @@ func hideMessage(force bool) {
 }
 
 func doHideMessage() {
-	msgWnd.Clear()
-	ncurses.Update()
-	msgWndHideTime = time.UnixMilli(0)
+	if msgWnd != nil {
+		msgWnd.Clear()
+		msgWndHideTime = time.UnixMilli(0)
+	}
 }
 
 func delayedMessageHider() {
@@ -269,49 +431,31 @@ func delayedMessageHider() {
 	}
 }
 
-func handleEvents(client *chubby.Chubby, done chan<- any) {
-	var state chubby.State = chubby.StateStopped
-	var track *chubby.Track
-	var started int64
+func handleEvents(chub *chubby.Chubby, done chan<- any) {
 	var ticker *time.Ticker
 
-	events, err := client.Events(true)
+	events, err := chub.Events(true)
 	if err != nil {
 		return
 	}
 
-	st, err := client.Status()
+	s, err := chub.Status()
 	if err != nil {
 		return
 	}
-	state = st.State
-	track = st.Track
-	started = time.Now().Unix() - int64(st.TrackPos)
+
+	NcursesMu.Lock()
+	chubStatus = s
+	chubStarted = time.Now().Unix() - int64(chubStatus.TrackPos)
+	NcursesMu.Unlock()
 
 loop:
 	for {
-		data := make(map[string]string)
-		if track != nil {
-			data["p"] = track.Path
-			data["a"] = track.Artist
-			data["b"] = track.Album
-			data["t"] = track.Title
-			data["n"] = strconv.Itoa(track.Number)
-			data["l"] = track.Length.String()
-			data["o"] = ctime.Time(time.Now().Unix() -
-				started).String()
-			// "r": strconv.Itoa(plist.Length),
-			// "q": strconv.Itoa(se.PlistPos),
-		}
-
 		NcursesMu.Lock()
-		browserWnd.SetSelected(data["p"])
-		// TODO: Set selected for playlist window.
-		statusWnd.Update(state, data)
+		updateStatus()
 		NcursesMu.Unlock()
-		// Call to restore cursor on command window in case it is active.
-		cmdWnd.Refresh()
 
+		state := chubStatus.State
 		if state == chubby.StatePlaying && ticker == nil {
 			ticker = time.NewTicker(time.Millisecond * 900)
 		} else if state != chubby.StatePlaying && ticker != nil {
@@ -330,10 +474,18 @@ loop:
 				break loop
 			}
 			if se, ok := e.(*chubby.StatusEvent); ok {
-				state = se.State
-				// plist = se.Playlist
-				track = se.Track
-				started = time.Now().Unix() - int64(se.TrackPos)
+				NcursesMu.Lock()
+				chubStatus = &chubby.Status{
+					State:       se.State,
+					PlaylistPos: se.PlaylistPos,
+					TrackPos:    se.TrackPos,
+					Playlist:    se.Playlist,
+					Track:       se.Track,
+				}
+
+				chubStarted = time.Now().Unix() -
+					int64(se.TrackPos)
+				NcursesMu.Unlock()
 			}
 		case <-tickerCh:
 		}
@@ -354,6 +506,6 @@ func wait(ch <-chan any, delay time.Duration) {
 	}
 }
 
-func printError(format string, args ...any) {
-	fmt.Fprintf(os.Stderr, "asp: %s\n", fmt.Sprintf(format, args...))
+func printErr(err error) {
+	fmt.Fprintf(os.Stderr, "asp: %s\n", err.Error())
 }

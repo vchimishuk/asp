@@ -102,17 +102,17 @@ var spec = &config.Spec{
 		},
 		&config.PropertySpec{
 			Type:   config.TypeStringList,
+			Name:   string(CmdDown) + "-key",
+			Parser: parseKey,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
 			Name:   string(CmdEnd) + "-key",
 			Parser: parseKey,
 		},
 		&config.PropertySpec{
 			Type:   config.TypeStringList,
 			Name:   string(CmdHome) + "-key",
-			Parser: parseKey,
-		},
-		&config.PropertySpec{
-			Type:   config.TypeStringList,
-			Name:   string(CmdNext) + "-key",
 			Parser: parseKey,
 		},
 		&config.PropertySpec{
@@ -133,11 +133,6 @@ var spec = &config.Spec{
 		&config.PropertySpec{
 			Type:   config.TypeStringList,
 			Name:   string(CmdPlay) + "-key",
-			Parser: parseKey,
-		},
-		&config.PropertySpec{
-			Type:   config.TypeStringList,
-			Name:   string(CmdPrev) + "-key",
 			Parser: parseKey,
 		},
 		&config.PropertySpec{
@@ -168,6 +163,11 @@ var spec = &config.Spec{
 		&config.PropertySpec{
 			Type:   config.TypeStringList,
 			Name:   string(CmdStop) + "-key",
+			Parser: parseKey,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
+			Name:   string(CmdUp) + "-key",
 			Parser: parseKey,
 		},
 	},
@@ -213,21 +213,21 @@ type Cmd string
 const (
 	CmdApply      Cmd = "apply"
 	CmdBack       Cmd = "back"
+	CmdDown       Cmd = "down"
 	CmdEnd        Cmd = "end"
 	CmdHome       Cmd = "home"
-	CmdNext       Cmd = "next"
 	CmdNoop       Cmd = "noop"
 	CmdPageDown   Cmd = "page-down"
 	CmdPageUp     Cmd = "page-up"
 	CmdPause      Cmd = "pause"
 	CmdPlay       Cmd = "play"
-	CmdPrev       Cmd = "prev"
 	CmdQuit       Cmd = "quit"
 	CmdSearch     Cmd = "search"
 	CmdSearchNext Cmd = "search-next"
 	CmdSearchPrev Cmd = "search-prev"
 	CmdSelected   Cmd = "selected"
 	CmdStop       Cmd = "stop"
+	CmdUp         Cmd = "up"
 )
 
 var defKeymap = map[Cmd][]ncurses.Key{
@@ -240,6 +240,11 @@ var defKeymap = map[Cmd][]ncurses.Key{
 		ncurses.Key('h'),
 		ctrlKey('h'),
 	},
+	CmdDown: []ncurses.Key{
+		ncurses.KEY_DOWN,
+		ncurses.Key('j'),
+		ctrlKey('n'),
+	},
 	CmdEnd: []ncurses.Key{
 		ncurses.KEY_END,
 		ctrlKey('e'),
@@ -247,11 +252,6 @@ var defKeymap = map[Cmd][]ncurses.Key{
 	CmdHome: []ncurses.Key{
 		ncurses.KEY_HOME,
 		ctrlKey('a'),
-	},
-	CmdNext: []ncurses.Key{
-		ncurses.KEY_DOWN,
-		ncurses.Key('j'),
-		ctrlKey('n'),
 	},
 	CmdPageDown: []ncurses.Key{
 		ncurses.KEY_PAGEDOWN,
@@ -268,11 +268,6 @@ var defKeymap = map[Cmd][]ncurses.Key{
 	},
 	CmdPlay: []ncurses.Key{
 		ncurses.Key('x'),
-	},
-	CmdPrev: []ncurses.Key{
-		ncurses.KEY_UP,
-		ncurses.Key('k'),
-		ctrlKey('p'),
 	},
 	CmdQuit: []ncurses.Key{
 		ncurses.Key('q'),
@@ -291,6 +286,11 @@ var defKeymap = map[Cmd][]ncurses.Key{
 	},
 	CmdStop: []ncurses.Key{
 		ncurses.Key('s'),
+	},
+	CmdUp: []ncurses.Key{
+		ncurses.KEY_UP,
+		ncurses.Key('k'),
+		ctrlKey('p'),
 	},
 }
 

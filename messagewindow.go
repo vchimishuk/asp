@@ -22,6 +22,10 @@ func NewMessageWindow(w, y, x int) (*MessageWindow, error) {
 	}, nil
 }
 
+func (w *MessageWindow) Delete() {
+	w.panel.Delete()
+}
+
 // TODO: Introduce custom fomratter.
 func (w *MessageWindow) Update(format string, args ...any) {
 	s := fmt.Sprintf(format, args...)
