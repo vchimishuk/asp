@@ -26,7 +26,6 @@ var (
 	cmdWnd         *CommandWindow
 	msgWnd         *MessageWindow
 	msgWndHideTime time.Time
-	msgWndShowCond *sync.Cond
 )
 
 var (
@@ -216,6 +215,8 @@ inputLoop:
 				hideMessage(true)
 			}
 		}
+
+		hideMessage(false)
 	}
 
 	chub.Close()
@@ -337,9 +338,6 @@ func initUI() error {
 
 	ncurses.Update()
 
-	// TODO: Use input loop to do it.
-	go delayedMessageHider()
-
 	return nil
 }
 
@@ -408,40 +406,16 @@ func showMessage(format string, args ...any) {
 
 	delay := time.Second * 3
 	msgWndHideTime = time.Now().Add(delay)
-	msgWndShowCond.Signal()
 }
 
 func hideMessage(force bool) {
-	NcursesMu.Lock()
-	defer NcursesMu.Unlock()
-
 	if msgWndHideTime.Unix() != 0 &&
 		(force || msgWndHideTime.Before(time.Now())) {
+		NcursesMu.Lock()
+		defer NcursesMu.Unlock()
 
-		doHideMessage()
-	}
-}
-
-func doHideMessage() {
-	if msgWnd != nil {
 		msgWnd.Clear()
 		msgWndHideTime = time.UnixMilli(0)
-	}
-}
-
-func delayedMessageHider() {
-	msgWndShowCond = sync.NewCond(&NcursesMu)
-
-	for {
-		NcursesMu.Lock()
-		if msgWndHideTime.Before(time.Now()) {
-			doHideMessage()
-			msgWndShowCond.Wait()
-			NcursesMu.Unlock()
-		} else {
-			NcursesMu.Unlock()
-			time.Sleep(time.Second)
-		}
 	}
 }
 
