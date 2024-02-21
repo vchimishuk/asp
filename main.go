@@ -179,6 +179,9 @@ inputLoop:
 				NcursesMu.Unlock()
 			case config.CmdShowActive:
 				err = chdir(path.Dir(activePath))
+				NcursesMu.Lock()
+				browserWnd.ShowActive()
+				NcursesMu.Unlock()
 			case config.CmdSearchNext:
 				NcursesMu.Lock()
 				browserWnd.SearchNext()

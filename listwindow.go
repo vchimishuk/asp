@@ -70,6 +70,19 @@ func (w *ListWindow) SetActive(s string) {
 	}
 }
 
+func (w *ListWindow) ShowActive() {
+	if w.active == "" {
+		return
+	}
+
+	for i, _ := range w.items {
+		if w.items[i].IsActive(w.active) {
+			w.SetCursor(i)
+			break
+		}
+	}
+}
+
 func (w *ListWindow) Cursor() ListItem {
 	if w.cursor != -1 {
 		return w.items[w.cursor]

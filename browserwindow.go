@@ -63,6 +63,10 @@ func (w *BrowserWindow) SetActive(path string) {
 	w.list.SetActive(path)
 }
 
+func (w *BrowserWindow) ShowActive() {
+	w.list.ShowActive()
+}
+
 func (w *BrowserWindow) SetDir(p string, entries []chubby.Entry) error {
 	items := make([]ListItem, 0, len(entries)+1)
 	pd := &chubby.Dir{
