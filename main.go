@@ -80,7 +80,6 @@ func doMain() error {
 
 	browserEntries, err = chub.List(browserPath)
 	if err != nil {
-		// TODO: err: short write
 		return fmt.Errorf("server error: %w", err)
 	}
 	updateWindows()
@@ -250,8 +249,21 @@ func reconnect(chub *chubby.Chubby) (<-chan any, error) {
 		return nil, err
 	}
 
+	events, err := chub.Events(true)
+	if err != nil {
+		chub.Close()
+		return nil, err
+	}
+
+	chubStatus, err = chub.Status()
+	if err != nil {
+		chub.Close()
+		return nil, err
+	}
+
+	chubStarted = time.Now().Unix() - int64(chubStatus.TrackPos)
 	done := make(chan any, 1)
-	go handleEvents(chub, done)
+	go handleEvents(events, done)
 
 	return done, nil
 }
@@ -433,23 +445,8 @@ func delayedMessageHider() {
 	}
 }
 
-func handleEvents(chub *chubby.Chubby, done chan<- any) {
+func handleEvents(events <-chan chubby.Event, done chan<- any) {
 	var ticker *time.Ticker
-
-	events, err := chub.Events(true)
-	if err != nil {
-		return
-	}
-
-	s, err := chub.Status()
-	if err != nil {
-		return
-	}
-
-	NcursesMu.Lock()
-	chubStatus = s
-	chubStarted = time.Now().Unix() - int64(chubStatus.TrackPos)
-	NcursesMu.Unlock()
 
 loop:
 	for {
