@@ -110,15 +110,6 @@ func doMain() error {
 
 inputLoop:
 	for {
-		NcursesMu.Lock()
-		// TODO: Move into updateWindows()
-		// TODO:  Title window should be updated using some global
-		//        state just like browser window is.
-		titleWnd.Update(map[string]string{
-			"p": browserPath,
-		})
-		NcursesMu.Unlock()
-
 		var err error
 		ch := rootWnd.GetChar()
 		if ch != 0 {
@@ -296,11 +287,21 @@ func initNcurses() error {
 }
 
 func destroyNcurses() {
-	titleWnd.Delete()
-	browserWnd.Delete()
-	statusWnd.Delete()
-	cmdWnd.Delete()
-	msgWnd.Delete()
+	if titleWnd != nil {
+		titleWnd.Delete()
+	}
+	if browserWnd != nil {
+		browserWnd.Delete()
+	}
+	if statusWnd != nil {
+		statusWnd.Delete()
+	}
+	if cmdWnd != nil {
+		cmdWnd.Delete()
+	}
+	if msgWnd != nil {
+		msgWnd.Delete()
+	}
 	ncurses.End()
 }
 
@@ -356,7 +357,6 @@ func updateStatus() {
 	data := make(map[string]string)
 	track := chubStatus.Track
 	if track != nil {
-		data["p"] = track.Path
 		data["a"] = track.Artist
 		data["b"] = track.Album
 		data["t"] = track.Title
@@ -374,11 +374,9 @@ func updateStatus() {
 		activePath = track.Path
 		browserWnd.SetActive(activePath)
 	}
+	data["p"] = browserPath
 
-	// // TODO: Title window shoul accept the same params as status window.
-	// titleWnd.Update(map[string]string{
-	// 	"p": activePath,
-	// })
+	titleWnd.Update(data)
 	statusWnd.Update(chubStatus.State, data)
 	// Call to restore cursor on command window in case it is active.
 	cmdWnd.Refresh()
