@@ -14,6 +14,8 @@ import (
 	"github.com/vchimishuk/config"
 )
 
+const DefaultPort = 5115
+
 var spec = &config.Spec{
 	Strict: true,
 	Properties: []*config.PropertySpec{
@@ -319,7 +321,7 @@ func Load() error {
 	}
 
 	ChubHost = cfg.StringOr("chub-host", "localhost")
-	ChubPort = cfg.IntOr("chub-port", 5115)
+	ChubPort = cfg.IntOr("chub-port", DefaultPort)
 
 	err = initColors(cfg)
 	if err != nil {

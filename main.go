@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"path"
@@ -14,7 +16,18 @@ import (
 	"github.com/vchimishuk/asp/config"
 	"github.com/vchimishuk/chubby"
 	ctime "github.com/vchimishuk/chubby/time"
+	"github.com/vchimishuk/opt"
 )
+
+const Version = "0.1.0"
+
+// TODO: Add args into usage.
+var Options = []*opt.Desc{
+	{"h", "help", opt.ArgNone,
+		"", "display this help and exit"},
+	{"v", "version", opt.ArgNone,
+		"", "output version information and exit"},
+}
 
 var NcursesMu sync.Mutex
 
@@ -42,14 +55,32 @@ var (
 )
 
 func main() {
-	err := doMain()
+	opts, args, err := opt.Parse(os.Args[1:], Options)
+	if err != nil {
+		printErr(err)
+		os.Exit(1)
+	}
+	if len(args) > 1 {
+		// TODO: opt package must validate arguments.
+		printErr(errors.New("expected number of arguments"))
+		os.Exit(1)
+	}
+	if opts.Bool("help") {
+		printUsage(opts)
+		os.Exit(0)
+	}
+	if opts.Bool("version") {
+		printVersion()
+		os.Exit(0)
+	}
+	err = doMain(opts, args)
 	if err != nil {
 		printErr(err)
 		os.Exit(1)
 	}
 }
 
-func doMain() error {
+func doMain(opts opt.Options, args []string) error {
 	if err := initNcurses(); err != nil {
 		return fmt.Errorf("failed to initalize ncurses: %w", err)
 	}
@@ -63,10 +94,14 @@ func doMain() error {
 		return fmt.Errorf("failed to initalize UI: %w", err)
 	}
 
+	host, port, err := hostPort(args)
+	if err != nil {
+		return err
+	}
+
 	var eventsDone <-chan any
-	var err error
 	chub = &chubby.Chubby{}
-	eventsDone, err = reconnect(chub)
+	eventsDone, err = reconnect(chub, host, port)
 	if err != nil {
 		return fmt.Errorf("server connection error: %w", err)
 	}
@@ -199,7 +234,7 @@ inputLoop:
 			}
 		}
 		if !chub.Connected() {
-			eventsDone, err = reconnect(chub)
+			eventsDone, err = reconnect(chub, host, port)
 			if err != nil {
 				showMessage("server connection error")
 			} else {
@@ -222,20 +257,7 @@ inputLoop:
 	return nil
 }
 
-func reconnect(chub *chubby.Chubby) (<-chan any, error) {
-	host := os.Getenv("ASP_CHUB_HOST")
-	if host == "" {
-		host = config.ChubHost
-	}
-	ports := os.Getenv("ASP_CHUB_PORT")
-	var port int
-	if ports != "" {
-		port, _ = strconv.Atoi(ports)
-	}
-	if port == 0 {
-		port = config.ChubPort
-	}
-
+func reconnect(chub *chubby.Chubby, host string, port int) (<-chan any, error) {
 	err := chub.Connect(host, port)
 	if err != nil {
 		return nil, err
@@ -477,6 +499,48 @@ func wait(ch <-chan any, delay time.Duration) {
 	}
 }
 
+func hostPort(args []string) (string, int, error) {
+	var host string = config.ChubHost
+	var port string = strconv.Itoa(config.ChubPort)
+	var err error
+
+	ehost := os.Getenv("ASP_HOST")
+	if ehost != "" {
+		host = ehost
+	}
+	eport := os.Getenv("ASP_PORT")
+	if eport != "" {
+		port = eport
+	}
+
+	if len(args) == 1 {
+		host, port, err = net.SplitHostPort(args[0])
+		if err != nil {
+			return "", 0, err
+		}
+		if port == "" {
+			port = strconv.Itoa(config.DefaultPort)
+		}
+	}
+
+	iport, err := strconv.Atoi(port)
+	if err != nil {
+		return "", 0, fmt.Errorf("invalid port %s", port)
+	}
+
+	return host, iport, err
+}
+
 func printErr(err error) {
 	fmt.Fprintf(os.Stderr, "asp: %s\n", err.Error())
+}
+
+func printUsage(opts opt.Options) {
+	fmt.Println("usage: asp [OPTION]... [HOST[:PORT]]")
+	fmt.Println()
+	fmt.Print(opt.Usage(Options))
+}
+
+func printVersion() {
+	fmt.Printf("%s\n", Version)
 }
