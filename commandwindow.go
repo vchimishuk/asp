@@ -8,6 +8,7 @@ import (
 	"unicode"
 
 	ncurses "github.com/gbin/goncurses"
+	"github.com/vchimishuk/asp/config"
 )
 
 const (
@@ -36,6 +37,7 @@ func NewCommandWindow(w, y, x int) (*CommandWindow, error) {
 		return nil, err
 	}
 	window.Keypad(true)
+	window.AttrOn(config.ColorNormal)
 
 	return &CommandWindow{window: window}, nil
 }
