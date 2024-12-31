@@ -23,6 +23,7 @@ const (
 	KEY_SOH              = 0x01 // ^A
 	KEY_STX              = 0x02 // ^B
 	KEY_VT               = 0x0B // ^K
+	KEY_BS2              = 0x7F // BACKSPACE in some situations.
 )
 
 type CommandWindow struct {
@@ -134,7 +135,9 @@ loop:
 				buf = ""
 				break loop
 			}
-		} else if ch == ncurses.KEY_BACKSPACE || ch == KEY_BS {
+		} else if ch == ncurses.KEY_BACKSPACE || ch == KEY_BS ||
+			ch == KEY_BS2 {
+
 			if bo > 0 {
 				buf = buf[:bo-1] + buf[bo:]
 				x--
