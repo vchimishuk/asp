@@ -222,6 +222,14 @@ inputLoop:
 				NcursesMu.Lock()
 				browserWnd.Up()
 				NcursesMu.Unlock()
+			case config.CmdVolumeDown:
+				NcursesMu.Lock()
+				err = chub.Volume(-2, chubby.VolumeModeRel)
+				NcursesMu.Unlock()
+			case config.CmdVolumeUp:
+				NcursesMu.Lock()
+				err = chub.Volume(2, chubby.VolumeModeRel)
+				NcursesMu.Unlock()
 			case config.CmdQuit:
 				break inputLoop
 			}
@@ -379,6 +387,8 @@ func updateStatus() {
 	}
 
 	data := make(map[string]string)
+	data["v"] = strconv.Itoa(chubStatus.Volume)
+
 	track := chubStatus.Track
 	if track != nil {
 		data["a"] = track.Artist
@@ -472,6 +482,7 @@ loop:
 				NcursesMu.Lock()
 				chubStatus = &chubby.Status{
 					State:       se.State,
+					Volume:      se.Volume,
 					PlaylistPos: se.PlaylistPos,
 					TrackPos:    se.TrackPos,
 					Playlist:    se.Playlist,

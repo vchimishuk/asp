@@ -172,6 +172,16 @@ var spec = &config.Spec{
 			Name:   string(CmdUp) + "-key",
 			Parser: parseKey,
 		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
+			Name:   string(CmdVolumeDown) + "-key",
+			Parser: parseKey,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
+			Name:   string(CmdVolumeUp) + "-key",
+			Parser: parseKey,
+		},
 	},
 }
 
@@ -230,6 +240,8 @@ const (
 	CmdShowActive Cmd = "show-active"
 	CmdStop       Cmd = "stop"
 	CmdUp         Cmd = "up"
+	CmdVolumeDown Cmd = "volume-down"
+	CmdVolumeUp   Cmd = "volume-up"
 )
 
 var defKeymap = map[Cmd][]ncurses.Key{
@@ -293,6 +305,12 @@ var defKeymap = map[Cmd][]ncurses.Key{
 		ncurses.KEY_UP,
 		ncurses.Key('k'),
 		ctrlKey('p'),
+	},
+	CmdVolumeDown: []ncurses.Key{
+		ncurses.Key('9'),
+	},
+	CmdVolumeUp: []ncurses.Key{
+		ncurses.Key('0'),
 	},
 }
 
@@ -363,7 +381,7 @@ func initFormats(cfg *config.Config) error {
 		{"status-playing-format", &FormatStatusPlaying,
 			"{-*%:%a - %t}{*%:[%o/%l]}"},
 		{"title-format", &FormatTitle,
-			"{%p}"},
+			"{-*%:%p}{*%:[%v%%]}"},
 	}
 
 	for _, f := range fmts {
