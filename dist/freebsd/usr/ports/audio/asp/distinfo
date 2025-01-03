@@ -1,0 +1,11 @@
+TIMESTAMP = 1735939694
+SHA256 (vchimishuk-asp-0.0.1-451d4a1_GH0.tar.gz) = f6744d3050603edfd2369eb8e26ecd69eb2698ca4aa68d3583a5a04b0e5a7868
+SIZE (vchimishuk-asp-0.0.1-451d4a1_GH0.tar.gz) = 27757
+SHA256 (gbin-goncurses-be6a464272ae_GH0.tar.gz) = 24a1c9518017b27f7895133a8dec3277bdf5e0ad91f82c9b971df2f6f4a29562
+SIZE (gbin-goncurses-be6a464272ae_GH0.tar.gz) = 46862
+SHA256 (vchimishuk-chubby-94b95014d5a6_GH0.tar.gz) = b65f61f79155550c93cb17e5316858a2c0e1cb2e17582237d93156ccec922d97
+SIZE (vchimishuk-chubby-94b95014d5a6_GH0.tar.gz) = 18169
+SHA256 (vchimishuk-config-ed7bd1b64558_GH0.tar.gz) = 02adca45a1b1fad780d082a943a556969b08a0537ecce616ffa65773808bb1f4
+SIZE (vchimishuk-config-ed7bd1b64558_GH0.tar.gz) = 19512
+SHA256 (vchimishuk-opt-e09d5e511662_GH0.tar.gz) = e3526cefd74d4ec495528c3325b1b24fc702cedb80e5fe32d09b34fe6345b21a
+SIZE (vchimishuk-opt-e09d5e511662_GH0.tar.gz) = 17450
