@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"net"
 	"os"
 	"os/signal"
 	"path"
@@ -23,8 +22,12 @@ const Version = "0.1.0"
 
 // TODO: Add args into usage.
 var Options = []*opt.Desc{
-	{"h", "help", opt.ArgNone,
-		"", "display this help and exit"},
+	{"h", "host", opt.ArgString, "HOST",
+		"server host name"},
+	{"", "help", opt.ArgNone, "",
+		"display this help"},
+	{"p", "port", opt.ArgString, "PORT",
+		"server port"},
 	{"v", "version", opt.ArgNone,
 		"", "output version information and exit"},
 }
@@ -60,16 +63,15 @@ func main() {
 		printErr(err)
 		os.Exit(1)
 	}
-	if len(args) > 1 {
-		// TODO: opt package must validate arguments.
-		printErr(errors.New("expected number of arguments"))
+	if len(args) != 0 {
+		printErr(errors.New("no arguments expected"))
 		os.Exit(1)
 	}
-	if opts.Bool("help") {
+	if opts.Has("help") {
 		printUsage(opts)
 		os.Exit(0)
 	}
-	if opts.Bool("version") {
+	if opts.Has("version") {
 		printVersion()
 		os.Exit(0)
 	}
@@ -94,7 +96,7 @@ func doMain(opts opt.Options, args []string) error {
 		return fmt.Errorf("failed to initalize UI: %w", err)
 	}
 
-	host, port, err := hostPort(args)
+	host, port, err := hostPort(opts)
 	if err != nil {
 		return err
 	}
@@ -512,28 +514,23 @@ func wait(ch <-chan any, delay time.Duration) {
 	}
 }
 
-func hostPort(args []string) (string, int, error) {
+func hostPort(opts opt.Options) (string, int, error) {
 	var host string = config.ChubHost
 	var port string = strconv.Itoa(config.ChubPort)
 	var err error
 
-	ehost := os.Getenv("ASP_HOST")
-	if ehost != "" {
-		host = ehost
+	if h := os.Getenv("ASP_HOST"); h != "" {
+		host = h
 	}
-	eport := os.Getenv("ASP_PORT")
-	if eport != "" {
-		port = eport
+	if h, ok := opts.String("host"); ok {
+		host = h
 	}
 
-	if len(args) == 1 {
-		host, port, err = net.SplitHostPort(args[0])
-		if err != nil {
-			return "", 0, err
-		}
-		if port == "" {
-			port = strconv.Itoa(config.DefaultPort)
-		}
+	if p := os.Getenv("ASP_PORT"); p != "" {
+		port = p
+	}
+	if p, ok := opts.String("port"); ok {
+		port = p
 	}
 
 	iport, err := strconv.Atoi(port)
@@ -549,7 +546,7 @@ func printErr(err error) {
 }
 
 func printUsage(opts opt.Options) {
-	fmt.Println("usage: asp [OPTION]... [HOST[:PORT]]")
+	fmt.Println("usage: asp [OPTION]...")
 	fmt.Println()
 	fmt.Print(opt.Usage(Options))
 }
