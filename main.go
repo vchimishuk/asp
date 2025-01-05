@@ -218,6 +218,16 @@ inputLoop:
 				NcursesMu.Lock()
 				browserWnd.SearchPrev()
 				NcursesMu.Unlock()
+			case config.CmdSeekBackward:
+				NcursesMu.Lock()
+				err = chub.Seek(ctime.New(5),
+					chubby.SeekModeBackward)
+				NcursesMu.Unlock()
+			case config.CmdSeekForward:
+				NcursesMu.Lock()
+				err = chub.Seek(ctime.New(5),
+					chubby.SeekModeForward)
+				NcursesMu.Unlock()
 			case config.CmdStop:
 				err = chub.Stop()
 			case config.CmdUp:

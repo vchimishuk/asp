@@ -159,6 +159,16 @@ var spec = &config.Spec{
 		},
 		&config.PropertySpec{
 			Type:   config.TypeStringList,
+			Name:   string(CmdSeekBackward) + "-key",
+			Parser: parseKey,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
+			Name:   string(CmdSeekForward) + "-key",
+			Parser: parseKey,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
 			Name:   string(CmdShowActive) + "-key",
 			Parser: parseKey,
 		},
@@ -223,25 +233,27 @@ var (
 type Cmd string
 
 const (
-	CmdApply      Cmd = "apply"
-	CmdBack       Cmd = "back"
-	CmdDown       Cmd = "down"
-	CmdEnd        Cmd = "end"
-	CmdHome       Cmd = "home"
-	CmdNoop       Cmd = "noop"
-	CmdPageDown   Cmd = "page-down"
-	CmdPageUp     Cmd = "page-up"
-	CmdPause      Cmd = "pause"
-	CmdPlay       Cmd = "play"
-	CmdQuit       Cmd = "quit"
-	CmdSearch     Cmd = "search"
-	CmdSearchNext Cmd = "search-next"
-	CmdSearchPrev Cmd = "search-prev"
-	CmdShowActive Cmd = "show-active"
-	CmdStop       Cmd = "stop"
-	CmdUp         Cmd = "up"
-	CmdVolumeDown Cmd = "volume-down"
-	CmdVolumeUp   Cmd = "volume-up"
+	CmdApply        Cmd = "apply"
+	CmdBack         Cmd = "back"
+	CmdDown         Cmd = "down"
+	CmdEnd          Cmd = "end"
+	CmdHome         Cmd = "home"
+	CmdNoop         Cmd = "noop"
+	CmdPageDown     Cmd = "page-down"
+	CmdPageUp       Cmd = "page-up"
+	CmdPause        Cmd = "pause"
+	CmdPlay         Cmd = "play"
+	CmdQuit         Cmd = "quit"
+	CmdSearch       Cmd = "search"
+	CmdSearchNext   Cmd = "search-next"
+	CmdSearchPrev   Cmd = "search-prev"
+	CmdSeekBackward Cmd = "seek-backward"
+	CmdSeekForward  Cmd = "seek-forward"
+	CmdShowActive   Cmd = "show-active"
+	CmdStop         Cmd = "stop"
+	CmdUp           Cmd = "up"
+	CmdVolumeDown   Cmd = "volume-down"
+	CmdVolumeUp     Cmd = "volume-up"
 )
 
 var defKeymap = map[Cmd][]ncurses.Key{
@@ -294,6 +306,14 @@ var defKeymap = map[Cmd][]ncurses.Key{
 	},
 	CmdSearchPrev: []ncurses.Key{
 		ncurses.Key('N'),
+	},
+	CmdSeekBackward: []ncurses.Key{
+		ncurses.Key(','),
+		ncurses.KEY_LEFT,
+	},
+	CmdSeekForward: []ncurses.Key{
+		ncurses.Key('.'),
+		ncurses.KEY_RIGHT,
 	},
 	CmdShowActive: []ncurses.Key{
 		ncurses.Key('a'),
