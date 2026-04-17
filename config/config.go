@@ -119,6 +119,11 @@ var spec = &config.Spec{
 		},
 		&config.PropertySpec{
 			Type:   config.TypeStringList,
+			Name:   string(CmdKill) + "-key",
+			Parser: parseKey,
+		},
+		&config.PropertySpec{
+			Type:   config.TypeStringList,
 			Name:   string(CmdPageDown) + "-key",
 			Parser: parseKey,
 		},
@@ -238,6 +243,7 @@ const (
 	CmdDown         Cmd = "down"
 	CmdEnd          Cmd = "end"
 	CmdHome         Cmd = "home"
+	CmdKill         Cmd = "kill"
 	CmdNoop         Cmd = "noop"
 	CmdPageDown     Cmd = "page-down"
 	CmdPageUp       Cmd = "page-up"
@@ -278,6 +284,9 @@ var defKeymap = map[Cmd][]ncurses.Key{
 	CmdHome: []ncurses.Key{
 		ncurses.KEY_HOME,
 		ctrlKey('a'),
+	},
+	CmdKill: []ncurses.Key{
+		ncurses.Key('K'),
 	},
 	CmdPageDown: []ncurses.Key{
 		ncurses.KEY_PAGEDOWN,

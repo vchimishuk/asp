@@ -188,6 +188,8 @@ inputLoop:
 					p = entry.Track().Path
 				}
 				err = chub.Play(p)
+			case config.CmdKill:
+				err = chub.Kill()
 			case config.CmdPageDown:
 				NcursesMu.Lock()
 				browserWnd.PageDown()
@@ -235,13 +237,9 @@ inputLoop:
 				browserWnd.Up()
 				NcursesMu.Unlock()
 			case config.CmdVolumeDown:
-				NcursesMu.Lock()
-				err = chub.Volume(-2, chubby.VolumeModeRel)
-				NcursesMu.Unlock()
+				err = chub.Volume(-1, chubby.VolumeModeRel)
 			case config.CmdVolumeUp:
-				NcursesMu.Lock()
-				err = chub.Volume(2, chubby.VolumeModeRel)
-				NcursesMu.Unlock()
+				err = chub.Volume(1, chubby.VolumeModeRel)
 			case config.CmdQuit:
 				break inputLoop
 			}
@@ -274,7 +272,9 @@ inputLoop:
 		return fmt.Errorf("failed to save current path: %w", err)
 	}
 
-	wait(eventsDone, time.Second)
+	if eventsDone != nil {
+		wait(eventsDone, time.Second)
+	}
 
 	return nil
 }
