@@ -286,7 +286,7 @@ var defKeymap = map[Cmd][]ncurses.Key{
 		ctrlKey('a'),
 	},
 	CmdKill: []ncurses.Key{
-		ncurses.Key('K'),
+		ctrlKey('K'),
 	},
 	CmdPageDown: []ncurses.Key{
 		ncurses.KEY_PAGEDOWN,
