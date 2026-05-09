@@ -53,12 +53,15 @@ var (
 )
 
 var (
-	chubStatus  *chubby.Status
-	chubStarted int64
+	chubStatus *chubby.Status
+	// Current playing time.
+	chubTime ctime.Time
+	// Time at which current playing time was calculated.
+	chubTimeUpdated time.Time
 )
 
 func main() {
-	opts, args, err := opt.Parse(os.Args[1:], Options)
+	opts, args, err := opt.Parse(os.Args[1:], Options, false)
 	if err != nil {
 		printErr(err)
 		os.Exit(1)
@@ -222,12 +225,12 @@ inputLoop:
 				NcursesMu.Unlock()
 			case config.CmdSeekBackward:
 				NcursesMu.Lock()
-				err = chub.Seek(ctime.New(5),
+				err = chub.Seek(ctime.Seconds(5),
 					chubby.SeekModeBackward)
 				NcursesMu.Unlock()
 			case config.CmdSeekForward:
 				NcursesMu.Lock()
-				err = chub.Seek(ctime.New(5),
+				err = chub.Seek(ctime.Seconds(5),
 					chubby.SeekModeForward)
 				NcursesMu.Unlock()
 			case config.CmdStop:
@@ -297,7 +300,8 @@ func reconnect(chub *chubby.Chubby, host string, port int) (<-chan any, error) {
 		return nil, err
 	}
 
-	chubStarted = time.Now().Unix() - int64(chubStatus.TrackPos)
+	chubTime = chubStatus.TrackPos
+	chubTimeUpdated = time.Now()
 	done := make(chan any, 1)
 	go handleEvents(events, done)
 
@@ -403,12 +407,18 @@ func updateStatus() {
 
 	track := chubStatus.Track
 	if track != nil {
+		pos := chubTime
+		if chubStatus.State == chubby.StatePlaying {
+			d := time.Now().Sub(chubTimeUpdated)
+			pos += ctime.Milliseconds(d.Milliseconds())
+		}
+
 		data["a"] = track.Artist
 		data["b"] = track.Album
 		data["t"] = track.Title
 		data["n"] = strconv.Itoa(track.Number)
 		data["l"] = track.Length.String()
-		data["o"] = ctime.Time(time.Now().Unix() - chubStarted).String()
+		data["o"] = pos.String()
 		// "r": strconv.Itoa(plist.Length),
 		// "q": strconv.Itoa(se.PlistPos),
 	}
@@ -474,7 +484,7 @@ loop:
 
 		state := chubStatus.State
 		if state == chubby.StatePlaying && ticker == nil {
-			ticker = time.NewTicker(time.Millisecond * 900)
+			ticker = time.NewTicker(time.Millisecond * 500)
 		} else if state != chubby.StatePlaying && ticker != nil {
 			ticker.Stop()
 			ticker = nil
@@ -501,8 +511,9 @@ loop:
 					Track:       se.Track,
 				}
 
-				chubStarted = time.Now().Unix() -
-					int64(se.TrackPos)
+				chubTime = se.TrackPos
+				chubTimeUpdated = time.Now()
+
 				NcursesMu.Unlock()
 			}
 		case <-tickerCh:

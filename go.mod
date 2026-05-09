@@ -3,8 +3,8 @@ module github.com/vchimishuk/asp
 go 1.21.13
 
 require (
-	github.com/gbin/goncurses v0.0.0-20240517145248-be6a464272ae
-	github.com/vchimishuk/chubby v0.0.0-20250105211557-5c8291618f1b
-	github.com/vchimishuk/config v0.0.0-20230910195755-ed7bd1b64558
-	github.com/vchimishuk/opt v0.0.0-20250103221129-d823c9050e21
+	github.com/gbin/goncurses v0.0.0-20251113135420-86371713952c
+	github.com/vchimishuk/chubby v0.0.0-20260509152105-e21cde046cad
+	github.com/vchimishuk/config v0.0.0-20251226000915-f2660fcdf53b
+	github.com/vchimishuk/opt v0.0.0-20260329220500-a8e398f12069
 )

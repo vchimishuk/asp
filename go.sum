@@ -1,8 +1,8 @@
-github.com/gbin/goncurses v0.0.0-20240517145248-be6a464272ae h1:WeLSOuEYiwcuwg39YirhW0DibOkTztefXCTau5sSbyc=
-github.com/gbin/goncurses v0.0.0-20240517145248-be6a464272ae/go.mod h1:dmRjyC3ZOQQ4EXWMOIAQi0TLaJPcg61LFsJ9mvhSGRE=
-github.com/vchimishuk/chubby v0.0.0-20250105211557-5c8291618f1b h1:bJswBNNxOlnecYlrkGPTfehCIcbWWEtIzEWRvh4QzOQ=
-github.com/vchimishuk/chubby v0.0.0-20250105211557-5c8291618f1b/go.mod h1:WG3U84IdkwKpNaYrc0bXm1SRH/XRbP5DvIOwXvW3XZg=
-github.com/vchimishuk/config v0.0.0-20230910195755-ed7bd1b64558 h1:xFPdx9mb/yu4bFDgZmuuLd2M6F+f9jYYtHTE5Yw8iHE=
-github.com/vchimishuk/config v0.0.0-20230910195755-ed7bd1b64558/go.mod h1:4/fxN1V3/I1ujlZv5gf0KzQOv3/4nObqzqvkC4uf3X4=
-github.com/vchimishuk/opt v0.0.0-20250103221129-d823c9050e21 h1:rvN8vzumjvhKfg+Krs5X+/K78/rV+xV87xDPxvHl3Kk=
-github.com/vchimishuk/opt v0.0.0-20250103221129-d823c9050e21/go.mod h1:MW7wx9OaqU0whuX3WqVLl5i08bNC4VrYQJbJHNrWqL4=
+github.com/gbin/goncurses v0.0.0-20251113135420-86371713952c h1:InGOOMAeX54K0mRSNz6P3Yi/paVkIgWgkzhXE+MOzVI=
+github.com/gbin/goncurses v0.0.0-20251113135420-86371713952c/go.mod h1:dmRjyC3ZOQQ4EXWMOIAQi0TLaJPcg61LFsJ9mvhSGRE=
+github.com/vchimishuk/chubby v0.0.0-20260509152105-e21cde046cad h1:jOG5LAja1Cg+Q0QMhEAiQaEP79JF/V+dlErbxdz5HtM=
+github.com/vchimishuk/chubby v0.0.0-20260509152105-e21cde046cad/go.mod h1:WG3U84IdkwKpNaYrc0bXm1SRH/XRbP5DvIOwXvW3XZg=
+github.com/vchimishuk/config v0.0.0-20251226000915-f2660fcdf53b h1:TAEH0uLJEQjO3qVZPyUVKbPkv5hMP6fd7j4lJXrZeC8=
+github.com/vchimishuk/config v0.0.0-20251226000915-f2660fcdf53b/go.mod h1:4/fxN1V3/I1ujlZv5gf0KzQOv3/4nObqzqvkC4uf3X4=
+github.com/vchimishuk/opt v0.0.0-20260329220500-a8e398f12069 h1:ifmkC5qnMFL55QTmeDNBfOoOWoGgTfzKMkjpzAwvpm8=
+github.com/vchimishuk/opt v0.0.0-20260329220500-a8e398f12069/go.mod h1:MW7wx9OaqU0whuX3WqVLl5i08bNC4VrYQJbJHNrWqL4=
